@@ -1,0 +1,1 @@
+notify-send 'title' 'message' -t 2000

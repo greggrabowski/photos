@@ -1,0 +1,95 @@
+#!/bin/sh
+
+#nautilus-actions-new --label="Action à effectuer" -p "%d %m" -x /chemin/du/programme -d -u -g
+
+dir=$1
+#dirs=$2
+
+#for x in "$dirs" ; do
+#    echo "To jest $x"
+#done
+#exit
+
+#echo $dir
+
+# count files
+#find . -type f | wc -l
+
+#echo `find $dir -type f \( -name "*.jpg" -or -name "*.jpeg" \) | wc -l`
+
+#echo `find $dir -type f \( -name "*.jpg" -or -name "*.jpeg" \)`
+a=`du -hs "$dir"`
+
+find "$dir" -type f \( -iname "*.jpg" -or -iname "*.jpeg" \) -exec convert -compress jpeg -quality 40 '{}' '{}' \; -exec jhead -autorot '{}' \;
+
+b=`du -hs "$dir"`
+
+#echo "Before : "$a
+#echo "After : "$b
+
+#find $dir -type f \( -name "*.jpg" -or -name "*.jpeg" \) -exec convert -compress jpeg -quality 40 '{}' '{}' \; -exec jhead -autorot '{}' \; -exec echo "Converted" '{}' \;
+
+
+#find $dir -type f -name "*.jpg" -o -name "*.jpeg" -exec convert -compress jpeg -quality 40 '{}' '{}' \; -exec echo "Converted" '{}' \;
+
+#-o -iname 'jpeg' jhead -autorot "$file";
+zenity --info --text "Compression Completed\nBefore : $a\nAfter : $b"
+notify-send -t 2000 'Status' 'Compression Completed'
+
+exit
+
+quoted=$(echo -e "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS" | awk 'BEGIN {FS = "\n" } { printf "\"%s\" ", $1 }' | sed -e s#\"\"##)
+
+DIR="$NAUTILUS_SCRIPT_CURRENT_URI"
+#DIR="CC"
+DIR=`echo $NAUTILUS_SCRIPT_CURRENT_URI`
+echo "AA"$DIR"BB"
+
+echo  "AA"
+exit
+echo  "GG"
+
+DIR=$NAUTILUS_SCRIPT_CURRENT_URI
+echo $DIR
+
+
+DIR=`echo $NAUTILUS_SCRIPT_CURRENT_URI | sed 's/^file:\/\///' | sed 's/%20/ /g'`
+echo $DIR
+
+echo $1 | cut -c 4
+echo $2
+echo $3
+
+dir="$NAUTILUS_SCRIPT_CURRENT_URI"
+base=$(readlink -f "$(dirname "$dir")")
+echo  111111 $base
+
+
+dir="$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS"
+base=$(readlink -f "$(dirname "$dir")")
+echo  111111 $base
+
+#/usr/bin/zenity --info --text="$*"
+
+
+
+dirr="$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS"
+echo $dirr
+
+echo $ENV{NAUTILUS_SCRIPT_CURRENT_URI}
+
+dir=`pwd`
+echo $dir
+
+
+
+
+#dir=`echo "${PWD##*/}"`
+#echo $dir
+
+#find . -type f -name '*.jpg' -exec convert -compress jpeg -quality '{}' '{}' \;
+
+#find . -type f -name '*.jpg' -exec echo $dir'{}' $dir'{}' \;
+
+
+#find $dir -type f -name '*.*' -print0 | while IFS=read -r -d '' file; do printf '%s\n' "$file";done

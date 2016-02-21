@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Action
+Name[en_US]=MessageBox
+Name[en]=MessageBox
+Name[C]=MessageBox
+ToolbarLabel[en_US]=MessageBox
+ToolbarLabel[en]=MessageBox
+ToolbarLabel[C]=MessageBox
+Profiles=profile-zero;
+
+[X-Action-Profile profile-zero]
+ExecutionMode=DisplayOutput
+Exec=~/.local/share/nautilus/scripts/message %b
+Name[en_US]=Default profile
+Name[en]=Default profile
+Name[C]=Default profile
