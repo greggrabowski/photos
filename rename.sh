@@ -19,38 +19,76 @@
 # TO DO count duplicates 
 # TO DO check if we have all the files if cp (run in safe mode before delete)
 # TO DO count files with no metadata and log them, provide stats
+# TO DO add option check
 
-#set global variables
-VERBOSE=1
-DEBUG=1
-FILE_LOG=1
-LOG_FILE="rename.log"
-
-SORT_DIR=1
-TREE_SORT=1
-FOLDER="GG"
-ROOT="$HOME/Desktop/test" 
-ROOT="./Renamed" 
-
-CP=1 
-ROTATE=0
-COMPRESS=0
 
 # reset counters
 COUNTER=0
 MODIFIED=0 # FIX IT , it's not global
  
-# TO DO option processing here
- 
-if [ "$FILE_LOG" = 1 ] ; then
-  echo -e "" > $LOG_FILE
-fi
+# Initialize our own variables:
+VERBOSE=0
+DEBUG=0
+LOG_FILE=""
+CP=1 
+ROTATE=0
+COMPRESS=0
+ROOT=""
+
+# ============================= 
+function show_help
+{
+ # FIX IT description missing
+ echo "HELP"
+}
+
+# A POSIX variable
+OPTIND=1 # Reset in case getopts has been used previously in the shell.
+
+while getopts "h?crmvl:do:" opt; do
+    case "$opt" in
+    h|\?)
+        show_help
+        exit 0
+        ;;
+    c)  COMPRESS=1
+        ;;
+    r)  ROTATE=1
+        ;;
+    m)  CP=0
+        ;;
+    d)  DEBUG=1
+        ;;
+    v)  VERBOSE=1
+        ;;
+    l)  LOG_FILE=$OPTARG
+        ;;
+    o)  ROOT=$OPTARG
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+echo "COMPRESS=$COMPRESS"
+echo "ROTATE=$ROTATE"
+echo "COPY=$CP"
+echo "DEBUG=$DEBUG"
+echo "LOG_FILE='$LOG_FILE'"
+echo "ROOT='$ROOT'"
+echo "VERBOSE=$VERBOSE"
+echo "Leftovers: $@"
+
+# ============================= 
+
       
 function count {
 c=0
 extensions="jpg jpeg png"
 for ext in $extensions; do
-  c_=$(find . -maxdepth 10 -iname "*.$ext" -print0 | tr -d -c "\000" | wc -c)
+  c_=$(find $1 -maxdepth 10 -iname "*.$ext" -print0 | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
 done
 echo $c
@@ -58,9 +96,9 @@ exit $c
 }
 
 function log {
-  if [ "$VERBOSE" = 1 ] ; then
+  if [ "$LOG_FILE" !=  "" ] ; then
     echo -e "$@"
-      if [ "$FILE_LOG" = 1 ] ; then
+      if [ "$LOG_FILE" != "" ] ; then
         echo -e "$@" >> $LOG_FILE
       fi
   fi
@@ -69,14 +107,14 @@ function log {
 function debug {
   if [ "$DEBUG" = 1 ] ; then
     echo -e "DEBUG : $@"
-    if [ "$FILE_LOG" = 1 ] ; then
+    if [ "$LOG_FILE" != "" ] ; then
       echo -e "DEBUG : $@" >> $LOG_FILE
     fi
   fi
 }  
 
 # count files before
-FILES_IN=`count` 
+FILES_IN=`count .` 
 
 function rename {
   file=$1
@@ -116,17 +154,14 @@ function rename {
   if [ "$ROOT" != "" ] ; then
     debug "Changing root to $ROOT"
     DIR="$ROOT/"
-  fi
-  
-  if [ "$SORT_DIR" == "1" ] ; then
-  	 FOLDER=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' | awk -F '[:]' '{print $1"-"$2}'`
+
+  	FOLDER=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' | awk -F '[:]' '{print $1"-"$2}'`
 	DIR="$DIR$FOLDER/"
-  if [ "$TIME" == "" ] ; then
-	DIR="$DIR/NO_METADATA/"	
+    if [ "$TIME" == "" ] ; then
+	  DIR="$DIR/NO_METADATA/"	
 	fi
   fi
 
-debug "DIR1 $DIR"
  if [ ! -d "$DIR" ] ; then
       debug "Creating directory $DIR"
       mkdir -p "$DIR"
@@ -199,8 +234,19 @@ done < <(find . -type f \( -name "*.jpg" -or -name "*.jpeg" -or -name "*.JPG" \)
 
 log "MODIF=$MODIFIED"
 # count files after
-FILES_OUT=`count`
+if [ "$ROOT" != "" ] ; then
+  FILES_OUT=`count $ROOT`
+else
+  FILES_OUT=`count .`
+fi
 
-log "Files before processing : $FILES_IN"
-log "Files after processing  : $FILES_OUT"
+# TO DO expand path
+# FIX count files in output folder
+# FIX IT diplay full folder name
+log "Files before processing in $DIR_IN : $FILES_IN"
+if [ "$ROOT" != "" ] ; then
+  log "Files after processing in $ROOT : $FILES_OUT"
+else
+  log "Files after processing in ./ : $FILES_OUT"
+fi
 log "Files moved/copied      : $MODIFIED"
