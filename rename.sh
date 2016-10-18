@@ -2,17 +2,14 @@
 
 # TO DO dependencies, check if installed if not quit with warrning
 # TO DO notify about the risk when copying photos
-# TO DO count files changed and give a summary
 # TO DO change postfix to number
 # TO DO search or the files with same md5 (not only those without _ ) 
 # TO DO add customized prefix 
 # TO DO cleanup functions
-# TO DO option handler
 # TO DO add option to rotate or compress file
 # TO DO measure processing time
 # TO DO add option to add script to env.
 # TO DO option to remove duplicates
-# TO DO handle case when there is no metadata
 # TO DO check system, do nothing if not recognized
 # TO DO count duplicates 
 # TO DO check if we have all the files if cp (run in safe mode before delete)
@@ -108,7 +105,7 @@ for ext in $extensions; do
   c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -print0 | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
 done
-#echo $c
+echo $c
 exit $c
 }
 
@@ -235,7 +232,7 @@ else
 
 	MODIFIED=$(($MODIFIED+1))
 	
-	if [ "$CP" = 1 ] ; then
+	if [ "$CP" == 1 ] ; then
 		log "PICTURE : Copying file ($MODIFIED) $file to $OUTPUT"
 		cp "$file" "$OUTPUT"	
 	else
