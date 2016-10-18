@@ -8,11 +8,9 @@
 # TO DO add customized prefix 
 # TO DO cleanup functions
 # TO DO option handler
-# TO DO include original name in metadata or as a prefix
 # TO DO add option to rotate or compress file
 # TO DO measure processing time
 # TO DO add option to add script to env.
-# TO DO add progress in % or number of file
 # TO DO option to remove duplicates
 # TO DO handle case when there is no metadata
 # TO DO check system, do nothing if not recognized
@@ -39,13 +37,20 @@ ROOT=""
 function show_help
 {
  # FIX IT description missing
- echo "HELP"
+    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level]"
+    echo "   -o   copy/move renamed files to target_directory and create directory structure"
+    echo "   -d   display debug messages "
+    echo "   -m   move files (by default files are copied)"
+    echo "   -l   log messages into log_file"
+    echo "   -r   automatically rotate files"
+    echo "   -c   compress files with compression_level"
+    exit 1
 }
 
 # A POSIX variable
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
-while getopts "h?crmvl:do:" opt; do
+while getopts "h?c:rmvl:do:" opt; do
     case "$opt" in
     h|\?)
         show_help
