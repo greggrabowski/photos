@@ -4,4 +4,32 @@ Bunch of scripts to manage pictures
 ============ rename.sh ============
 
 This script reads file representing photos and create new files based on the file metadata.
-The name reflects creation time, which might be useful to find duplicates.
+The name reflects creation date, time and camera model, which might be useful to find duplicates and sort files.
+An examples of renamed file below:<br />
+2015-06-28 12_44_21 Canon_EOS_5D_Mark_III.jpg<br \>
+2016-05-22 15_49_57 D5803.jpg<br \>
+
+Additionally files might be sorted into folders representing year and date (-s option).
+Below an example of directory structure with the destination folders.
+
+SORTED<br />
+|<br />
+---2015-06<br />
+|<br />
+---2016-01<br />
+|<br />
+---2016-02<br />
+|<br />
+---NO_METADATA<br />
+
+Files are copied or moved (-m option) based on creation date stored in metadata. If there is no metadata files are copeid/moved into NO_METADATA directory.
+Duplicates are discovered using md5 checksum. If file with same name exist in destnation folder, but it has different md5, a postfix is added to the file name.
+
+Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level]<br />
+   -o   copy/move renamed files to target_directory and create directory structure<br />
+   -d   display debug messages<br />
+   -m   move files (by default files are copied)<br />
+   -l   log messages into log_file<br />
+   -r   automatically rotate files<br />
+   -c   compress files with compression_level<br />
+   -s   sort files intro folders (by month)<br />
