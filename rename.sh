@@ -11,15 +11,14 @@
 # TO DO add option to add script to env.
 # TO DO option to remove duplicates
 # TO DO check system, do nothing if not recognized
-# TO DO count duplicates 
 # TO DO check if we have all the files if cp (run in safe mode before delete)
 # TO DO count files with no metadata and log them, provide stats
 # TO DO add option check
 
-
 # reset counters
 COUNTER=0
-MODIFIED=0 # FIX IT , it's not global
+MODIFIED=0
+DUPLICATES=0
  
 # Initialize our own variables:
 VERBOSE=0
@@ -32,11 +31,11 @@ SORT=0
 
 BASE_DIR=`pwd`
 DIR_OUT=`pwd`
-
+SKIP="qazwsxedcrfv" # unique pattern to skip
 # ============================= 
 function show_help
 {
-    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level]"
+    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level] [-x pattern]"
     echo "   -o   copy/move renamed files to target_directory and create directory structure"
     echo "   -d   display debug messages "
     echo "   -m   move files (by default files are copied)"
@@ -44,6 +43,7 @@ function show_help
     echo "   -r   automatically rotate files"
     echo "   -c   compress files with compression_level"
     echo "   -s   sort files intro folders (by month)"
+    echo "   -x   exclude folders matching pattern"
 # TO DO -i option (input folder)
     exit 1
 }
@@ -51,7 +51,7 @@ function show_help
 # A POSIX variable
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
-while getopts "h?c:rmvl:do:s" opt; do
+while getopts "h?c:rmvl:do:sx:" opt; do
     case "$opt" in
     h|\?)
         show_help
@@ -72,6 +72,8 @@ while getopts "h?c:rmvl:do:s" opt; do
     s)  SORT=1
         ;;
     o)  DIR_OUT=$OPTARG
+        ;;
+    x)  SKIP=$OPTARG
         ;;
     esac
 done
@@ -95,7 +97,15 @@ echo "Leftovers: $@"
 # ============================= 
 
 function exists {
-  command -v "$1" >/dev/null 2>&1
+  T=0
+
+  while [ "$1" != "" ]; do
+    type "$1" &> /dev/null ;
+    T=$(($T+`echo "$?"`))  
+    #echo "Missing tool : $1"  FIX IT - report missing tool
+    shift
+  done
+  echo "$T"
 }
     
 function count {
@@ -128,6 +138,13 @@ function debug {
 		echo -e "DEBUG : $@" >> $LOG_FILE
 	fi
 }  
+
+# check if all tools are installed 
+if [ `exists exiftool` != 0 ]; then
+  log "Not all tools are installed"
+  exit
+fi
+
 
 # count files before
 FILES_IN=`count "$BASE_DIR"` 
@@ -191,7 +208,13 @@ if [ "$SORT" == "1" ] ; then
 
 	DIR="$DIR_OUT/SORTED/$FOLDER/"
 else
-	DIR="$DIR_OUT/"
+	
+	echo "DIR IN = $DIR_IN"
+	echo "DIR OUT = $DIR_OUT"
+	x=`echo $DIR_OUT | wc -c`
+	x=$((x+1))
+	FOLDER=`echo $DIR_IN | cut -c $x-`
+	DIR="$DIR_OUT/$FOLDER"
 fi
  	
 if [ ! -d "$DIR" ] ; then
@@ -218,6 +241,7 @@ debug "OUT : $MD_OUT : $OUTPUT"
 # if same file (same md5) exists do nothing
 if [ -f "$OUTPUT" ] && [ "$MD_IN" == "$MD_OUT" ] ; then
 	log "PICTURE : File $file exists"
+	DUPLICATES=$(($DUPLICATES+1))
 	PROCESSED=1
 # if file exists, but it's different build a new name (increment)
 elif [ -f "$OUTPUT" ] && [ "$MD_IN" != "$MD_OUT" ] ; then
@@ -258,7 +282,7 @@ log " ================================= "
 
 while read -d '' -r file; do
 	rename "$file"
-done < <(find "$BASE_DIR" -type f \( -name "*.jpg" -or -name "*.jpeg" -or -name "*.JPG" \) -print0)
+done < <(find "$BASE_DIR" -type f \( -name "*.jpg" -or -name "*.jpeg" -or -name "*.JPG" \) -not -path "$SKIP" -print0)
 
 log "MODIF=$MODIFIED"
 # count files after
@@ -267,3 +291,4 @@ FILES_OUT=`count "$DIR_OUT"`
 log "Files before processing in $BASE_DIR : $FILES_IN"
 log "Files after processing in $DIR_OUT : $FILES_OUT"
 log "Files moved/copied      : $MODIFIED"
+log "Duplicates              : $DUPLICATES"
