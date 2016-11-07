@@ -29,6 +29,8 @@ ROTATE=0
 COMPRESS=0
 SORT=0
 
+FOLDER=""
+
 BASE_DIR=`pwd`
 DIR_OUT=`pwd`
 SKIP="qazwsxedcrfv" # unique pattern to skip
@@ -139,10 +141,32 @@ function debug {
 	fi
 }  
 
-# check if all tools are installed 
-if [ `exists exiftool` != 0 ]; then
-  log "Not all tools are installed"
-  exit
+
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+	log "We are using Linux"
+	MD5_CMD="md5sum"
+	# check if all tools are installed 
+    if [ `exists exiftool md5sum` != 0 ]; then
+       log "Not all tools are installed"
+     exit
+    fi
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+	log "We are using MacOS"	
+	MD5_CMD="md5 -r"
+	# check if all tools are installed 
+    if [ `exists exiftool md5` != 0 ]; then
+       log "Not all tools are installed"
+     exit
+    fi
+elif [[ "$OSTYPE" == "cygwin" ]]; then
+	log "We are using cygwin"
+	exit
+elif [[ "$OSTYPE" == "win32" ]]; then
+	log "We are using windows"
+	exit
+else
+	log "Unrecognized OS"
+	exit
 fi
 
 
@@ -209,11 +233,12 @@ if [ "$SORT" == "1" ] ; then
 	DIR="$DIR_OUT/SORTED/$FOLDER/"
 else
 	
-	echo "DIR IN = $DIR_IN"
-	echo "DIR OUT = $DIR_OUT"
-	x=`echo $DIR_OUT | wc -c`
+	debug "DIR IN = $DIR_IN"
+	debug "DIR OUT = $DIR_OUT"
+	x=`echo $BASE_DIR | wc -c`
 	x=$((x+1))
 	FOLDER=`echo $DIR_IN | cut -c $x-`
+	debug "FOLDER : $FOLDER"
 	DIR="$DIR_OUT/$FOLDER"
 fi
  	
@@ -226,13 +251,13 @@ OUTPUT="$DIR$FILE_NAME_OUT.$EXT"
 debug "OUTPUT <- $OUTPUT"  
 
 POSTFIX=""
-MD_IN=`md5 "$file" | awk -F '[=]' '{print $2}'` 
+MD_IN=`$MD5_CMD "$file" | awk -F '[ ]' '{print $1}'` # FIX IT change it to function 
 
 debug "postfix : $POSTFIX"
 PROCESSED=0
 while [ "$PROCESSED" = 0 ] ; do
 
-MD_OUT=`md5 "$OUTPUT" | awk -F '[=]' '{print $2}'`
+MD_OUT=`$MD5_CMD "$OUTPUT" | awk -F '[ ]' '{print $1}'`
 
 
 debug "IN  : $MD_IN :$file"
