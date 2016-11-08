@@ -6,7 +6,6 @@
 # TO DO search or the files with same md5 (not only those without _ ) 
 # TO DO add customized prefix 
 # TO DO cleanup functions
-# TO DO add option to rotate or compress file
 # TO DO measure processing time
 # TO DO add option to add script to env.
 # TO DO option to remove duplicates
@@ -15,6 +14,11 @@
 # TO DO count files with no metadata and log them, provide stats
 # TO DO add option check
 # TO DO add metadata to the file
+# TO DO add sorting by places, compression, rotation (curl -s $URL | jq -r ".address.city" )
+
+# reference links
+#http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
+#https://maps.googleapis.com/maps/api/geocode/json?latlng=40.7470444,-073.9411611
 
 # reset counters
 COUNTER=0
@@ -173,7 +177,7 @@ fi
 
 # count files before
 FILES_IN=`count "$BASE_DIR"` 
-
+SIZE_IN=`du -hs "$BASE_DIR"`
 
 log "BASE_DIR=$BASE_DIR"
 
@@ -317,8 +321,11 @@ done < <(find "$BASE_DIR" -type f \( -name "*.jpg" -or -name "*.jpeg" -or -name 
 log "MODIF=$MODIFIED"
 # count files after
 FILES_OUT=`count "$DIR_OUT"`
+SIZE_OUT=`du -hs "$DIR_OUT"`
 
 log "Files before processing in $BASE_DIR : $FILES_IN"
 log "Files after processing in $DIR_OUT : $FILES_OUT"
+log "Size of $BASE_DIR before processing : $SIZE_IN"
+log "Size of $DIR_OUT after processing : $SIZE_OUT"
 log "Files moved/copied      : $MODIFIED"
 log "Duplicates              : $DUPLICATES"
