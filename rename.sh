@@ -14,6 +14,7 @@
 # TO DO check if we have all the files if cp (run in safe mode before delete)
 # TO DO count files with no metadata and log them, provide stats
 # TO DO add option check
+# TO DO add metadata to the file
 
 # reset counters
 COUNTER=0
@@ -265,8 +266,12 @@ debug "OUT : $MD_OUT : $OUTPUT"
 	
 # if same file (same md5) exists do nothing
 if [ -f "$OUTPUT" ] && [ "$MD_IN" == "$MD_OUT" ] ; then
-	log "PICTURE : File $file exists"
+	log "PICTURE : Duplicates found: $file | $OUTPUT" # FIX IT log source and destination file
 	DUPLICATES=$(($DUPLICATES+1))
+	if [ "$CP" == 0 ] ; then
+		log "Deleting duplicate $file"
+		rm -f $file
+	fi
 	PROCESSED=1
 # if file exists, but it's different build a new name (increment)
 elif [ -f "$OUTPUT" ] && [ "$MD_IN" != "$MD_OUT" ] ; then
