@@ -15,6 +15,7 @@
 # TO DO add option check
 # TO DO add metadata to the file
 # TO DO add sorting by places, compression, rotation (curl -s $URL | jq -r ".address.city" )
+# TO measure processing time
 
 # reference links
 #http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
@@ -178,6 +179,7 @@ fi
 # count files before
 FILES_IN=`count "$BASE_DIR"` 
 SIZE_IN=`du -hs "$BASE_DIR"`
+START=`date +%s`
 
 log "BASE_DIR=$BASE_DIR"
 
@@ -322,7 +324,17 @@ log "MODIF=$MODIFIED"
 # count files after
 FILES_OUT=`count "$DIR_OUT"`
 SIZE_OUT=`du -hs "$DIR_OUT"`
+END=`date +%s`
 
+secs=$(($END-$START))
+TIME=`printf '%dh:%dm:%ds\n' $(($secs/3600)) $(($secs%3600/60)) $(($secs%60))`
+
+SS=`date -r $START`
+EE=`date -r $END`
+
+log "Start: $SS, End: $EE"
+
+log "Processing time : $TIME"
 log "Files before processing in $BASE_DIR : $FILES_IN"
 log "Files after processing in $DIR_OUT : $FILES_OUT"
 log "Size of $BASE_DIR before processing : $SIZE_IN"
