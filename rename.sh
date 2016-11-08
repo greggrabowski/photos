@@ -115,7 +115,7 @@ function count {
 c=0
 extensions="jpg jpeg png"
 for ext in $extensions; do
-  c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -print0 | tr -d -c "\000" | wc -c)
+  c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
 done
 echo $c
@@ -270,7 +270,7 @@ if [ -f "$OUTPUT" ] && [ "$MD_IN" == "$MD_OUT" ] ; then
 	DUPLICATES=$(($DUPLICATES+1))
 	if [ "$CP" == 0 ] ; then
 		log "Deleting duplicate $file"
-		rm -f $file
+		rm -f "$file"
 	fi
 	PROCESSED=1
 # if file exists, but it's different build a new name (increment)
