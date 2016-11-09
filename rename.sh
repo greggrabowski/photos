@@ -15,8 +15,7 @@
 # TO DO add option check
 # TO DO add metadata to the file
 # TO DO add sorting by places, compression, rotation (curl -s $URL | jq -r ".address.city" )
-# TO measure processing time
-
+# TO DO add check if file exist (not just run md5 on target file)
 # reference links
 #http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
 #https://maps.googleapis.com/maps/api/geocode/json?latlng=40.7470444,-073.9411611
@@ -34,6 +33,7 @@ CP=1
 ROTATE=0
 COMPRESS=0
 SORT=0
+RENAME=1
 
 FOLDER=""
 
@@ -52,6 +52,7 @@ function show_help
     echo "   -c   compress files with compression_level"
     echo "   -s   sort files intro folders (by month)"
     echo "   -x   exclude folders matching pattern"
+    echo "   -n   keep original name"
 # TO DO -i option (input folder)
     exit 1
 }
@@ -59,13 +60,13 @@ function show_help
 # A POSIX variable
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
-while getopts "h?c:rmvl:do:sx:" opt; do
+while getopts "h?c:rmvl:do:sx:n" opt; do
     case "$opt" in
     h|\?)
         show_help
         exit 0
         ;;
-    c)  COMPRESS=1
+    c)  COMPRESS=$OPTARG
         ;;
     r)  ROTATE=1
         ;;
@@ -83,6 +84,8 @@ while getopts "h?c:rmvl:do:sx:" opt; do
         ;;
     x)  SKIP=$OPTARG
         ;;
+    n)  RENAME=0
+        ;;
     esac
 done
 
@@ -98,6 +101,7 @@ echo "LOG_FILE='$LOG_FILE'"
 echo "DIR_OUT='$DIR_OUT'"
 echo "VERBOSE=$VERBOSE"
 echo "SORT=$SORT"
+echo "RENAME=$RENAME"
 echo "Leftovers: $@"
 
 # FIX IT option error check
@@ -213,11 +217,16 @@ TIME=`echo $CREATED | grep -Eo '[0-9]{2}:[0-9]{2}:[0-9]{2}$' | awk -F '[:]' '{pr
 MODEL=`exiftool "$file" | grep "Camera Model Name" | cut -d : -f 2 | cut -c 2-30 | tr ' ' '_'`
 
 # build output file name
-if [ "$TIME" == "" ] ; then
-	debug " NO METADATA in file $file !! "
-	FILE_NAME_OUT=`echo "$FILE_NAME_IN" | sed 's/_NO_METADATA//'`
+if [ "$RENAME" = 1 ]; then
+  if [ "$TIME" == "" ] ; then
+    debug " NO METADATA in file $file !! "
+    FILE_NAME_OUT=`echo "$FILE_NAME_IN" | sed 's/_NO_METADATA//'`
 else
-	FILE_NAME_OUT="$DATE $TIME $MODEL"
+    FILE_NAME_OUT="$DATE $TIME $MODEL"
+fi
+else
+  # keep original name
+  FILE_NAME_OUT=$FILE_NAME_IN
 fi
   
 debug "FILE_NAME_IN  : $FILE_NAME_IN"
@@ -273,11 +282,21 @@ debug "OUT : $MD_OUT : $OUTPUT"
 # if same file (same md5) exists do nothing
 if [ -f "$OUTPUT" ] && [ "$MD_IN" == "$MD_OUT" ] ; then
 	log "PICTURE : Duplicates found: $file | $OUTPUT" # FIX IT log source and destination file
-	DUPLICATES=$(($DUPLICATES+1))
-	if [ "$CP" == 0 ] ; then
-		log "Deleting duplicate $file"
-		rm -f "$file"
+#	DUPLICATES=$(($DUPLICATES+1))
+#	if [ "$CP" == 0 ] ; then
+#		if [ "$file" != "$OUTPUT" ]; then
+#		  log "Deleting duplicate $file"
+#		  rm -f "$file"
+#		fi
+#	fi
+	if [ "$file" != "$OUTPUT" ]; then
+		DUPLICATES=$(($DUPLICATES+1))
+		if [ "$CP" == 0 ] ; then
+		  log "Deleting duplicate $file"
+		  rm -f "$file"
+		fi
 	fi
+	
 	PROCESSED=1
 # if file exists, but it's different build a new name (increment)
 elif [ -f "$OUTPUT" ] && [ "$MD_IN" != "$MD_OUT" ] ; then
@@ -299,16 +318,6 @@ else
 		log "PICTURE : Moving file ($MODIFIED) $file to $OUTPUT"
 	  	mv "$file" "$OUTPUT"	
 	fi
-	# FIX IT
-	if [ "$ROTATE" = "1" ] ; then
-		jhead $OUTPUT
-	fi
-	# FIX IT
-	if [ "$COMPRESS" = "1" ] ; then
-		log "PICTURE : Compressing file $OUTPUT"
-		convert -compress jpeg -quality 40 $OUTPUT $OUTPUT
-	fi 
-
 	PROCESSED=1
 fi
 done
@@ -317,7 +326,18 @@ log " ================================= "
 }
 
 while read -d '' -r file; do
-	rename "$file"
+	# FIX IT
+	if [ "$ROTATE" = "1" ] ; then
+		jhead $file
+	fi
+	# FIX IT
+	if [ "$COMPRESS" -gt "0" ] ; then
+		log "PICTURE : Compressing (quality set to $COMPRESS%) file : $file"
+		convert -compress jpeg -quality "$COMPRESS" "$file" "$file"
+	fi 
+	if [ "$RENAME" = "1" ]; then
+	   rename "$file"
+	fi
 done < <(find "$BASE_DIR" -type f \( -name "*.jpg" -or -name "*.jpeg" -or -name "*.JPG" \) -not -path "$SKIP" -print0)
 
 log "MODIF=$MODIFIED"
@@ -336,8 +356,8 @@ log "Start: $SS, End: $EE"
 
 log "Processing time : $TIME"
 log "Files before processing in $BASE_DIR : $FILES_IN"
-log "Files after processing in $DIR_OUT : $FILES_OUT"
+log "Files after processing in $DIR_OUT   : $FILES_OUT"
 log "Size of $BASE_DIR before processing : $SIZE_IN"
-log "Size of $DIR_OUT after processing : $SIZE_OUT"
+log "Size of $DIR_OUT after processing   : $SIZE_OUT"
 log "Files moved/copied      : $MODIFIED"
 log "Duplicates              : $DUPLICATES"
