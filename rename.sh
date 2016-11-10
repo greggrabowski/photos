@@ -16,6 +16,9 @@
 # TO DO add metadata to the file
 # TO DO add sorting by places, compression, rotation (curl -s $URL | jq -r ".address.city" )
 # TO DO add check if file exist (not just run md5 on target file)
+# TO DO keep duplicates in dedicated folder
+# TO DO select folder for sorted pictures
+
 # reference links
 #http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
 #https://maps.googleapis.com/maps/api/geocode/json?latlng=40.7470444,-073.9411611
@@ -122,7 +125,7 @@ function exists {
     
 function count {
 c=0
-extensions="jpg jpeg png"
+extensions="jpg jpeg"
 for ext in $extensions; do
   c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
@@ -338,7 +341,7 @@ while read -d '' -r file; do
 	if [ "$RENAME" = "1" ]; then
 	   rename "$file"
 	fi
-done < <(find "$BASE_DIR" -type f \( -name "*.jpg" -or -name "*.jpeg" -or -name "*.JPG" \) -not -path "$SKIP" -print0)
+done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" \) -not -path "$SKIP" -print0)
 
 log "MODIF=$MODIFIED"
 # count files after
