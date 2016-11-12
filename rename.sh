@@ -128,24 +128,30 @@ echo $c
 exit $c
 }
 #LINENO
-function log {
+function log_ {
+
+    NUM=`echo "${BASH_LINENO[*]}" | cut -f2 -d ' ' `
+    DATE=`date "+%Y-%m-%d% %H:%M:%S"`
+    LOG_TXT="$DATE : $NUM : $@"
+
+
 	if [ "$VERBOSE" ==  "1" ] ; then
-		echo -e "$@"
+		echo -e "$LOG_TXT"
 	fi
 	
 	if [ "$LOG_FILE" != "" ] ; then
-		echo -e "$@" >> $LOG_FILE
+		echo -e "$LOG_TXT" >> $LOG_FILE
 	fi
 }  
 
+function log() {
+	log_ "INFO : $@"
+}
+
 function debug {
 	if [ "$DEBUG" = 1 ] ; then
-    	echo -e "DEBUG : $@"
-	fi
-	
-	if [ "$LOG_FILE" != "" ] ; then
-		echo -e "DEBUG : $@" >> $LOG_FILE
-	fi
+      log_ "DEBUG : $@"
+    fi
 }  
 
 function are_same
