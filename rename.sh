@@ -40,6 +40,8 @@ ROTATE=0
 COMPRESS=0
 SORT=0
 RENAME=1
+FSIZE=0
+FMD5=1
 
 FOLDER=""
 
@@ -60,6 +62,24 @@ function show_help
     echo "   -x   exclude folders matching pattern"
     echo "   -n   keep original name"
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
+    echo "       m - make of camera"
+    echo "       n - name of the model"
+    echo "       t - time"
+    echo "       h - height"
+    echo "       w - width"
+    echo "       i - unique ID"
+    echo "       c - checksum"
+    echo "       s - size"
+    echo ""
+    echo "Example:"
+    echo "./rename.sh -v -d -s -f \"mnt\""
+    echo "   -v more logging text"
+    echo "   -d debug information"
+    echo "   -s sort files into directories representing date (YYYY-MM)"
+    echo "   -f compare files based on:"
+    echo "      m - camera manufacturer"
+    echo "      n - type of the model"
+    echo "      t - creation time"
 # TO DO -i option (input folder)
     exit 1
 }
@@ -81,7 +101,9 @@ while getopts "h?c:rmvl:do:sx:nf:" opt; do
       s) SORT=1 ;;
       o) DIR_OUT=$OPTARG ;;
       x) SKIP=$OPTARG ;;
-      f) filter_code=$OPTARG ;;
+      f) filter_code=`echo $OPTARG | awk '{print toupper($0)}'`
+         FMD5=0 
+         FSIZE=0;;
       n) RENAME=0 ;;
     esac
 done
@@ -99,7 +121,35 @@ echo "DIR_OUT='$DIR_OUT'"
 echo "VERBOSE=$VERBOSE"
 echo "SORT=$SORT"
 echo "RENAME=$RENAME"
+echo "filter_code=$filter_code"
 echo "Leftovers: $@"
+
+
+FILTER=""
+#change to upper case
+while read -n1 character; do
+    #echo "$character"
+    APPENDIX=""
+    case $character in
+		M) APPENDIX="Make" ;;
+		N) APPENDIX="Camera Model Name" ;;
+ 		T) APPENDIX="Create Date  " ;; 	
+  		H) APPENDIX="^Image Height" ;;
+    	W) APPENDIX="^Image Width" ;;
+    	I) APPENDIX="Image Unique ID" ;;
+    	C) FMD5=1 ;;
+    	S) FSIZE=1 ;;
+		*) APPENDIX="IGNORE" ;;
+  esac
+
+if [ "$FILTER" == "" ]; then
+  FILTER=$APPENDIX
+else
+  if [ "$APPENDIX" != "" ]; then
+    FILTER="$FILTER\|$APPENDIX"
+  fi
+fi
+done < <(echo -n "$filter_code")
 
 # FIX IT option error check
 
@@ -156,17 +206,68 @@ function debug {
 
 function are_same
 {
-MD_1=`$MD5_CMD "$1" | awk -F '[ ]' '{print $1}'` # FIX IT change it to function 
-MD_2=`$MD5_CMD "$2" | awk -F '[ ]' '{print $1}'`
+#if [ ! -e "$1" ] || [ ! -e "$2" ]; then
+#  if [ ! -e "$1" ]; then
+#     echo "File (1) $1 doesn't exists"
+#  fi
+#  if [ ! -e "$2" ]; then
+#     echo "File (2) $2 doesn't exists"
+#  fi
+#  return 0
+#fi
+#FILTER=""
 
-if [ "$MD_1" == "$MD_2" ]; then
-  debug "Same MD5 : $MD_1 : $MD_2"
-  return 1
-else
-  debug "Different MD5 : $MD_1 : $MD_2"
+if [ ! -z "$FILTER" ]; then 
+debug "FILTER : $FILTER"
+
+META1=`exiftool "$1" | grep "$FILTER"` | grep -v "Warning"
+META2=`exiftool "$2" | grep "$FILTER"` | grep -v "Warning"
+ 
+debug "META1 : $META1"
+debug "META2 : $META2"
+
+
+ if [ "$META1" != "$META2" ]; then
+   log "Params of files: $1 | $2 differs"
+   return 0
+ fi
+fi
+
+if [ "$FSIZE" == "1" ]; then
+  debug "Comparing size"
+  SIZE1=`du "$1" | cut -f1`
+  SIZE2=`du "$2" | cut -f1`
+  
+  
+  debug "SIZE1 : $SIZE1"
+  debug "SIZE2 : $SIZE2"
+  
+  if [ "$SIZE1" != "$SIZE2" ]; then
+    log "Size of files: $1 | $2 differs"
+    return 0
+  fi
+fi
+
+if [ "$FMD5" == "1" ]; then
+debug "Comparing md5"
+
+MD1=`$MD5_CMD "$1" | awk -F '[ ]' '{print $1}'`
+MD2=`$MD5_CMD "$2" | awk -F '[ ]' '{print $1}'`
+
+debug "MD1 : $MD1"
+debug "MD2 : $MD2"
+
+if [ "$MD1" != "$MD2" ]; then
+  log "MD5 of files differs : $MD1 | $MD2"
   return 0
 fi
+
+
+fi
+
+return 1
 }
+
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
 	log "We are using Linux"
@@ -363,7 +464,7 @@ SIZE_OUT=`du -hs "$DIR_OUT" | cut -f1`
 END=`date +%s`
 
 secs=$(($END-$START))
-TIME=`printf '%dh:%dm:%ds\n' $(($secs/3600)) $(($secs%3600/60)) $(($secs%60))`
+TIME=`printf '%02dh:%02dm:%02ds\n' $(($secs/3600)) $(($secs%3600/60)) $(($secs%60))`
 
 SS=`date -r $START`
 EE=`date -r $END`
