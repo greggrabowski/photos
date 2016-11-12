@@ -48,6 +48,33 @@ FOLDER=""
 BASE_DIR=`pwd`
 DIR_OUT=`pwd`
 SKIP="qazwsxedcrfv" # unique pattern to skip
+
+function log_ {
+
+    NUM=`echo "${BASH_LINENO[*]}" | cut -f2 -d ' ' `
+    DATE=`date "+%Y-%m-%d% %H:%M:%S"`
+    LOG_TXT="$DATE : $NUM : $@"
+
+
+	if [ "$VERBOSE" ==  "1" ] ; then
+		echo -e "$LOG_TXT"
+	fi
+	
+	if [ "$LOG_FILE" != "" ] ; then
+		echo -e "$LOG_TXT" >> $LOG_FILE
+	fi
+}  
+
+function log() {
+	log_ "INFO : $@"
+}
+
+function debug {
+	if [ "$DEBUG" = 1 ] ; then
+      log_ "DEBUG : $@"
+    fi
+}  
+
 # ============================= 
 function show_help
 {
@@ -112,17 +139,17 @@ shift $((OPTIND-1))
 
 [ "$1" = "--" ] && shift
 
-echo "COMPRESS=$COMPRESS"
-echo "ROTATE=$ROTATE"
-echo "COPY=$CP"
-echo "DEBUG=$DEBUG"
-echo "LOG_FILE='$LOG_FILE'"
-echo "DIR_OUT='$DIR_OUT'"
-echo "VERBOSE=$VERBOSE"
-echo "SORT=$SORT"
-echo "RENAME=$RENAME"
-echo "filter_code=$filter_code"
-echo "Leftovers: $@"
+debug "COMPRESS=$COMPRESS"
+debug "ROTATE=$ROTATE"
+debug "COPY=$CP"
+debug "DEBUG=$DEBUG"
+debug "LOG_FILE='$LOG_FILE'"
+debug "DIR_OUT='$DIR_OUT'"
+debug "VERBOSE=$VERBOSE"
+debug "SORT=$SORT"
+debug "RENAME=$RENAME"
+debug "filter_code=$filter_code"
+debug "Leftovers: $@"
 
 
 FILTER=""
@@ -177,32 +204,6 @@ done
 echo $c
 exit $c
 }
-#LINENO
-function log_ {
-
-    NUM=`echo "${BASH_LINENO[*]}" | cut -f2 -d ' ' `
-    DATE=`date "+%Y-%m-%d% %H:%M:%S"`
-    LOG_TXT="$DATE : $NUM : $@"
-
-
-	if [ "$VERBOSE" ==  "1" ] ; then
-		echo -e "$LOG_TXT"
-	fi
-	
-	if [ "$LOG_FILE" != "" ] ; then
-		echo -e "$LOG_TXT" >> $LOG_FILE
-	fi
-}  
-
-function log() {
-	log_ "INFO : $@"
-}
-
-function debug {
-	if [ "$DEBUG" = 1 ] ; then
-      log_ "DEBUG : $@"
-    fi
-}  
 
 function are_same
 {
