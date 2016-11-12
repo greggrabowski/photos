@@ -18,7 +18,10 @@
 # TO DO add check if file exist (not just run md5 on target file)
 # TO DO keep duplicates in dedicated folder
 # TO DO select folder for sorted pictures
-
+# TO DO separate script option to update files with metadata
+# TO DO format output into table (before/after)
+# FIX IT counting files, correct folders, and naming of variables
+# TO DO describe criteria for comparison
 # reference links
 #http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
 #https://maps.googleapis.com/maps/api/geocode/json?latlng=40.7470444,-073.9411611
@@ -56,6 +59,7 @@ function show_help
     echo "   -s   sort files intro folders (by month)"
     echo "   -x   exclude folders matching pattern"
     echo "   -n   keep original name"
+    echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
 # TO DO -i option (input folder)
     exit 1
 }
@@ -63,32 +67,22 @@ function show_help
 # A POSIX variable
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
-while getopts "h?c:rmvl:do:sx:n" opt; do
+while getopts "h?c:rmvl:do:sx:nf:" opt; do
     case "$opt" in
-    h|\?)
+      h|\?)
         show_help
-        exit 0
-        ;;
-    c)  COMPRESS=$OPTARG
-        ;;
-    r)  ROTATE=1
-        ;;
-    m)  CP=0
-        ;;
-    d)  DEBUG=1
-        ;;
-    v)  VERBOSE=1
-        ;;
-    l)  LOG_FILE=$OPTARG
-        ;;
-    s)  SORT=1
-        ;;
-    o)  DIR_OUT=$OPTARG
-        ;;
-    x)  SKIP=$OPTARG
-        ;;
-    n)  RENAME=0
-        ;;
+        exit 0 ;;
+      c) COMPRESS=$OPTARG ;;
+      r) ROTATE=1 ;;
+      m) CP=0 ;;
+      d) DEBUG=1 ;;
+      v) VERBOSE=1 ;;
+      l) LOG_FILE=$OPTARG ;;
+      s) SORT=1 ;;
+      o) DIR_OUT=$OPTARG ;;
+      x) SKIP=$OPTARG ;;
+      f) filter_code=$OPTARG ;;
+      n) RENAME=0 ;;
     esac
 done
 
@@ -133,7 +127,7 @@ done
 echo $c
 exit $c
 }
-
+#LINENO
 function log {
 	if [ "$VERBOSE" ==  "1" ] ; then
 		echo -e "$@"
@@ -154,6 +148,19 @@ function debug {
 	fi
 }  
 
+function are_same
+{
+MD_1=`$MD5_CMD "$1" | awk -F '[ ]' '{print $1}'` # FIX IT change it to function 
+MD_2=`$MD5_CMD "$2" | awk -F '[ ]' '{print $1}'`
+
+if [ "$MD_1" == "$MD_2" ]; then
+  debug "Same MD5 : $MD_1 : $MD_2"
+  return 1
+else
+  debug "Different MD5 : $MD_1 : $MD_2"
+  return 0
+fi
+}
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
 	log "We are using Linux"
@@ -185,7 +192,7 @@ fi
 
 # count files before
 FILES_IN=`count "$BASE_DIR"` 
-SIZE_IN=`du -hs "$BASE_DIR"`
+SIZE_IN=`du -hs "$BASE_DIR" | cut -f1`
 START=`date +%s`
 
 log "BASE_DIR=$BASE_DIR"
@@ -270,44 +277,24 @@ OUTPUT="$DIR$FILE_NAME_OUT.$EXT"
 debug "OUTPUT <- $OUTPUT"  
 
 POSTFIX=""
-MD_IN=`$MD5_CMD "$file" | awk -F '[ ]' '{print $1}'` # FIX IT change it to function 
+#MD_IN=`$MD5_CMD "$file" | awk -F '[ ]' '{print $1}'` # FIX IT change it to function 
 
 debug "postfix : $POSTFIX"
 PROCESSED=0
 while [ "$PROCESSED" = 0 ] ; do
 
-MD_OUT=`$MD5_CMD "$OUTPUT" | awk -F '[ ]' '{print $1}'`
+#MD_OUT=`$MD5_CMD "$OUTPUT" | awk -F '[ ]' '{print $1}'`
 
 
 debug "IN  : $MD_IN :$file"
 debug "OUT : $MD_OUT : $OUTPUT"
+
+are_same "$file" "$OUTPUT"
+same_files=$?
 	
-# if same file (same md5) exists do nothing
-if [ -f "$OUTPUT" ] && [ "$MD_IN" == "$MD_OUT" ] ; then
-	log "PICTURE : Duplicates found: $file | $OUTPUT" # FIX IT log source and destination file
-#	DUPLICATES=$(($DUPLICATES+1))
-#	if [ "$CP" == 0 ] ; then
-#		if [ "$file" != "$OUTPUT" ]; then
-#		  log "Deleting duplicate $file"
-#		  rm -f "$file"
-#		fi
-#	fi
-	if [ "$file" != "$OUTPUT" ]; then
-		DUPLICATES=$(($DUPLICATES+1))
-		if [ "$CP" == 0 ] ; then
-		  log "Deleting duplicate $file"
-		  rm -f "$file"
-		fi
-	fi
-	
-	PROCESSED=1
-# if file exists, but it's different build a new name (increment)
-elif [ -f "$OUTPUT" ] && [ "$MD_IN" != "$MD_OUT" ] ; then
-	debug "$OUTPUT"
-    POSTFIX=$POSTFIX"_"
-    # FIX IT postfix if no metadata
-    OUTPUT="$DIR$FILE_NAME_OUT$POSTFIX.$EXT"
-else
+debug "same_files = $same_files"
+
+if [ ! -f "$OUTPUT" ]; then
 	debug "$OUTPUT"
   	debug "$MD_IN"
 	debug "$MD_OUT"
@@ -322,7 +309,27 @@ else
 	  	mv "$file" "$OUTPUT"	
 	fi
 	PROCESSED=1
+else
+  if [ $same_files -eq 1 ]; then
+log "PICTURE : Duplicates found: $file | $OUTPUT" # FIX IT log source and destination file
+	# if same file (same md5) exists do nothing
+	if [ "$file" != "$OUTPUT" ]; then
+		DUPLICATES=$(($DUPLICATES+1))
+		if [ "$CP" == 0 ] ; then
+		  log "Deleting duplicate $file"
+		  rm -f "$file"
+		fi
+	fi
+	PROCESSED=1
+  else
+  # if file exists, but it's different build a new name (increment)
+  	debug "Need to add prefix to $OUTPUT"
+    POSTFIX=$POSTFIX"_"
+    # FIX IT postfix if no metadata
+    OUTPUT="$DIR$FILE_NAME_OUT$POSTFIX.$EXT"
+  fi
 fi
+
 done
 
 log " ================================= "
@@ -346,7 +353,7 @@ done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" \) -not 
 log "MODIF=$MODIFIED"
 # count files after
 FILES_OUT=`count "$DIR_OUT"`
-SIZE_OUT=`du -hs "$DIR_OUT"`
+SIZE_OUT=`du -hs "$DIR_OUT" | cut -f1`
 END=`date +%s`
 
 secs=$(($END-$START))
