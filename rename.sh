@@ -30,6 +30,7 @@
 COUNTER=0
 MODIFIED=0
 DUPLICATES=0
+KEEP_DUPLICATES=0
  
 # Initialize our own variables:
 VERBOSE=0
@@ -54,19 +55,33 @@ function log_ {
     NUM=`echo "${BASH_LINENO[*]}" | cut -f2 -d ' ' `
     DATE=`date "+%Y-%m-%d% %H:%M:%S"`
     LOG_TXT="$DATE : $NUM : $@"
-
-
-	if [ "$VERBOSE" ==  "1" ] ; then
-		echo -e "$LOG_TXT"
-	fi
+	
+	echo -e "$LOG_TXT"
 	
 	if [ "$LOG_FILE" != "" ] ; then
 		echo -e "$LOG_TXT" >> $LOG_FILE
 	fi
-}  
+}   
+
+function nlog {
+
+if [ "$1" == "I" ]; then
+  if [ "$VERBOSE" ==  1 ]; then
+    log_ "INFO : ${@:2}"
+  fi
+elif [ "$1" == "D" ]; then
+  if [ "$DEBUG" == 1 ] ; then
+    log_ "DEBUG : ${@:2}"
+  fi
+else
+  log_ "$@"
+fi
+}
 
 function log() {
-	log_ "INFO : $@"
+  if [ "$VERBOSE" ==  "1" ] ; then
+    log_ "INFO : $@"	
+  fi
 }
 
 function debug {
@@ -88,6 +103,7 @@ function show_help
     echo "   -s   sort files intro folders (by month)"
     echo "   -x   exclude folders matching pattern"
     echo "   -n   keep original name"
+    echo "   -k   keep duplicates in DELETED folder"
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
     echo "       m - make of camera"
     echo "       n - name of the model"
@@ -114,7 +130,7 @@ function show_help
 # A POSIX variable
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
-while getopts "h?c:rmvl:do:sx:nf:" opt; do
+while getopts "h?c:rmvl:do:sx:nf:k" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -126,6 +142,7 @@ while getopts "h?c:rmvl:do:sx:nf:" opt; do
       v) VERBOSE=1 ;;
       l) LOG_FILE=$OPTARG ;;
       s) SORT=1 ;;
+      k) KEEP_DUPLICATES=1 ;;
       o) DIR_OUT=$OPTARG ;;
       x) SKIP=$OPTARG ;;
       f) filter_code=`echo $OPTARG | awk '{print toupper($0)}'`
@@ -158,12 +175,12 @@ while read -n1 character; do
     #echo "$character"
     APPENDIX=""
     case $character in
-		M) APPENDIX="Make" ;;
-		N) APPENDIX="Camera Model Name" ;;
- 		T) APPENDIX="Create Date  " ;; 	
+		M) APPENDIX="^Make" ;;
+		N) APPENDIX="^Camera Model Name" ;;
+ 		T) APPENDIX="^Create Date  " ;; 	
   		H) APPENDIX="^Image Height" ;;
     	W) APPENDIX="^Image Width" ;;
-    	I) APPENDIX="Image Unique ID" ;;
+    	I) APPENDIX="^Image Unique ID" ;;
     	C) FMD5=1 ;;
     	S) FSIZE=1 ;;
 		*) APPENDIX="IGNORE" ;;
@@ -423,8 +440,14 @@ DUPLICATES=$(($DUPLICATES+1))
 	if [ "$file" != "$OUTPUT" ]; then
 		
 		if [ "$CP" == 0 ] ; then
-		  log "Deleting duplicate $file"
-		  rm -f "$file"
+		  if [ "$KEEP_DUPLICATES" == 0 ]; then
+		    log "Deleting duplicate $file"
+		    rm -f "$file"
+		  else
+		    log "Moving duplicate $file"
+		    # FIX IT move file
+		    # mv "$file" "$OUTPUT"  
+		  fi
 		fi
 	fi
 	PROCESSED=1
@@ -469,12 +492,12 @@ TIME=`printf '%02dh:%02dm:%02ds\n' $(($secs/3600)) $(($secs%3600/60)) $(($secs%6
 SS=`date -r $START`
 EE=`date -r $END`
 
-log "Start: $SS, End: $EE"
+log_ "Start: $SS, End: $EE"
 
-log "Processing time : $TIME"
-log "Files before processing in $BASE_DIR : $FILES_IN"
-log "Files after processing in $DIR_OUT   : $FILES_OUT"
-log "Size of $BASE_DIR before processing : $SIZE_IN"
-log "Size of $DIR_OUT after processing   : $SIZE_OUT"
-log "Files moved/copied      : $MODIFIED"
-log "Duplicates              : $DUPLICATES"
+log_ "Processing time : $TIME"
+log_ "Files before processing in $BASE_DIR : $FILES_IN"
+log_ "Files after processing in $DIR_OUT   : $FILES_OUT"
+log_ "Size of $BASE_DIR before processing : $SIZE_IN"
+log_ "Size of $DIR_OUT after processing   : $SIZE_OUT"
+log_ "Files moved/copied      : $MODIFIED"
+log_ "Duplicates              : $DUPLICATES"
