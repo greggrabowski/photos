@@ -207,16 +207,15 @@ exit $c
 
 function are_same
 {
-#if [ ! -e "$1" ] || [ ! -e "$2" ]; then
-#  if [ ! -e "$1" ]; then
-#     echo "File (1) $1 doesn't exists"
-#  fi
-#  if [ ! -e "$2" ]; then
-#     echo "File (2) $2 doesn't exists"
-#  fi
-#  return 0
-#fi
-#FILTER=""
+if [ ! -e "$1" ] || [ ! -e "$2" ]; then
+  if [ ! -e "$1" ]; then
+     log "File (1) $1 doesn't exists"
+  fi
+  if [ ! -e "$2" ]; then
+     log "File (2) $2 doesn't exists"
+  fi
+  return 0
+fi
 
 if [ ! -z "$FILTER" ]; then 
 debug "FILTER : $FILTER"
@@ -309,7 +308,6 @@ log "BASE_DIR=$BASE_DIR"
 function rename {
   
 file=$1
-log "++++++++++++++++++++++++++"
 
 # take action on each file. $f store current file name  
 COUNTER=$(($COUNTER + 1))
@@ -420,9 +418,10 @@ if [ ! -f "$OUTPUT" ]; then
 else
   if [ $same_files -eq 1 ]; then
 log "PICTURE : Duplicates found: $file | $OUTPUT" # FIX IT log source and destination file
+DUPLICATES=$(($DUPLICATES+1))
 	# if same file (same md5) exists do nothing
 	if [ "$file" != "$OUTPUT" ]; then
-		DUPLICATES=$(($DUPLICATES+1))
+		
 		if [ "$CP" == 0 ] ; then
 		  log "Deleting duplicate $file"
 		  rm -f "$file"
