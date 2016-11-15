@@ -33,3 +33,25 @@ Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compress
    -r   automatically rotate files<br />
    -c   compress files with compression_level<br />
    -s   sort files intro folders (by month)<br />
+   -x   exclude folders matching pattern<br />
+   -n   keep original name<br />
+   -k   keep duplicates in DELETED folder<br />
+   -f   set matching criteria for duplicates" # FIX IT explain matching criteria<br />
+       m - make of camera<br />
+       n - name of the model<br />
+       t - time<br />
+       h - height<br />
+       w - width<br />
+       i - unique ID<br />
+       c - checksum<br />
+       s - size<br />
+<br />   
+   Example:<br />
+   ./rename.sh -v -d -s -f \"mnt\"<br />
+      -v more logging text<br />
+      -d debug information<br />
+      -s sort files into directories representing date (YYYY-MM)<br />
+      -f compare files based on:<br />
+         m - camera manufacturer<br />
+         n - type of the model<br />
+         t - creation time<br />
