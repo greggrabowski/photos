@@ -51,7 +51,6 @@ DIR_OUT=`pwd`
 SKIP="qazwsxedcrfv" # unique pattern to skip
 
 function log_ {
-
     NUM=`echo "${BASH_LINENO[*]}" | cut -f2 -d ' ' `
     DATE=`date "+%Y-%m-%d% %H:%M:%S"`
     LOG_TXT="$DATE : $NUM : $@"
@@ -210,7 +209,7 @@ function exists {
     
 function count {
 c=0
-extensions="jpg jpeg"
+extensions="jpg jpeg mov"
 for ext in $extensions; do
   c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
@@ -475,7 +474,7 @@ while read -d '' -r file; do
 	if [ "$RENAME" = "1" ]; then
 	   rename "$file"
 	fi
-done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" \) -not -path "$SKIP" -print0)
+done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" \) -not -path "$SKIP" -print0)
 
 log "MODIF=$MODIFIED"
 # count files after
