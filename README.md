@@ -29,7 +29,7 @@ Duplicates are discovered using md5 checksum. If file with same name exist in de
   
  
 
-     rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level] [-s] [-x pattern]
+     ./rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level] [-s] [-x pattern]
                [-n] [-k] [-f "mnthwics"]
 
   
@@ -44,7 +44,7 @@ Duplicates are discovered using md5 checksum. If file with same name exist in de
      -n   keep original name
      -k   keep duplicates in DELETED folder
      -f   set matching criteria for duplicates
-       m - make of camera
+       m - make of camera/manufacturer
        n - name of the model
        t - time
        h - height
