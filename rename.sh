@@ -106,7 +106,7 @@ function show_help
     echo "   -s   sort files intro folders (by month)"
     echo "   -x   exclude folders matching pattern"
     echo "   -n   keep original name"
-    echo "   -k   keep duplicates in DELETED folder"
+    echo "   -k   keep duplicates in orignal/source folder"
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
     echo "       m - make of camera"
     echo "       n - name of the model"
@@ -444,7 +444,7 @@ DUPLICATES=$(($DUPLICATES+1))
 		    log_v "Deleting duplicate $file"
 		    rm -f "$file"
 		  else
-		    log_v "Moving duplicate $file"
+		    log_v "Leaving duplicate $file"
 		    # FIX IT move file
 		    # mv "$file" "$OUTPUT"  
 		  fi
