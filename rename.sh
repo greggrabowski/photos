@@ -26,6 +26,11 @@
 #http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
 #https://maps.googleapis.com/maps/api/geocode/json?latlng=40.7470444,-073.9411611
 
+# TO DO add recommended option -a
+# TO DO show left files
+# TO file stats before/after in each folder
+# TO DO add date to log file name
+
 # reset counters
 COUNTER=0
 MODIFIED=0
@@ -213,7 +218,7 @@ function exists {
     
 function count {
 c=0
-extensions="jpg jpeg mov"
+extensions="jpg jpeg mov mp4"
 for ext in $extensions; do
   c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
@@ -315,9 +320,14 @@ fi
 
 
 # count files before
-FILES_IN=`count "$BASE_DIR"` 
-SIZE_IN=`du -hs "$BASE_DIR" | cut -f1`
+FILES_IN_1=`count "$BASE_DIR"` 
+SIZE_IN_1=`du -hs "$BASE_DIR" | cut -f1`
+FILES_OUT_1=`count "$DIR_OUT"` 
+SIZE_OUT_1=`du -hs "$DIR_OUT" | cut -f1`
+
+
 START=`date +%s`
+SS=`date`
 
 log_v "BASE_DIR=$BASE_DIR"
 
@@ -328,7 +338,7 @@ file=$1
 
 # take action on each file. $f store current file name  
 COUNTER=$(($COUNTER + 1))
-log_v "Processing file $file ($COUNTER/$FILES_IN)"
+log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 
 # get directory
 DIR_IN=`echo "$file" | grep -Eo '.*[/]'`
@@ -340,7 +350,7 @@ EXT=${file##*.}
 FILE_NAME_IN=`echo "$file" | rev | cut -d / -f 1 | sed 's/^[^.]*.//g' | rev`
    
 # read creation time from metadata
-CREATED=`exiftool "$file" | grep -m 1 "Create"`
+CREATED=`exiftool "$file" | grep -m 1 "^Create"`
 
 #extract date and time and reformat
 DATE=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' | awk -F '[:]' '{print $1"-"$2"-"$3}'`
@@ -478,26 +488,37 @@ while read -d '' -r file; do
 	if [ "$RENAME" = "1" ]; then
 	   rename "$file"
 	fi
-done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" \) -not -path "$SKIP" -print0)
+done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" -or -iname "*.mp4" \) -not -path "$SKIP" -print0)
 
 log_v "MODIF=$MODIFIED"
 # count files after
-FILES_OUT=`count "$DIR_OUT"`
-SIZE_OUT=`du -hs "$DIR_OUT" | cut -f1`
+FILES_IN_2=`count "$BASE_DIR"` 
+SIZE_IN_2=`du -hs "$BASE_DIR" | cut -f1`
+FILES_OUT_2=`count "$DIR_OUT"`
+SIZE_OUT_2=`du -hs "$DIR_OUT" | cut -f1`
+
+
 END=`date +%s`
 
 secs=$(($END-$START))
 TIME=`printf '%02dh:%02dm:%02ds\n' $(($secs/3600)) $(($secs%3600/60)) $(($secs%60))`
 
-SS=`date -r $START`
-EE=`date -r $END`
+
+EE=`date`
 
 log_v "Start: $SS, End: $EE"
 
 log_i "Processing time : $TIME"
-log_i "Files before processing in $BASE_DIR : $FILES_IN"
-log_i "Files after processing in $DIR_OUT   : $FILES_OUT"
-log_i "Size of $BASE_DIR before processing : $SIZE_IN"
-log_i "Size of $DIR_OUT after processing   : $SIZE_OUT"
+
+log_i "Files before processing in $BASE_DIR : $FILES_IN_1"
+log_i "Files before processing in $DIR_OUT : $FILES_OUT_1"
+log_i "Size of $BASE_DIR before processing : $SIZE_IN_1"
+log_i "Size of $DIR_OUT before processing : $SIZE_OUT_1"
+
+log_i "Files after processing in $BASE_DIR : $FILES_IN_2"
+log_i "Files after processing in $DIR_OUT : $FILES_OUT_2"
+log_i "Size of $BASE_DIR after processing : $SIZE_IN_2"
+log_i "Size of $DIR_OUT after processing : $SIZE_OUT_2"
+
 log_i "Files moved/copied      : $MODIFIED"
 log_i "Duplicates              : $DUPLICATES"
