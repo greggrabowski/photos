@@ -222,7 +222,7 @@ function exists {
     
 function count {
 c=0
-extensions="jpg jpeg mov mp4 png gif"
+extensions="jpg jpeg mov mp4 png gif m4a"
 for ext in $extensions; do
   c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
@@ -498,7 +498,7 @@ while read -d '' -r file; do
 	if [ "$RENAME" = "1" ]; then
 	   rename "$file"
 	fi
-done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" -or -iname "*.gif" \) -not -path "$SKIP" -print0)
+done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" -or -iname "*.gif" -or -iname "*.m4a" \) -not -path "$SKIP" -print0)
 
 log_v "MODIF=$MODIFIED"
 # count files after
