@@ -422,7 +422,7 @@ else
 	  x=$((x+1))
 	  FOLDER=`echo $DIR_IN | cut -c $x-`
 	fi
-	log_i "FOLDER : $FOLDER"
+	log_d "FOLDER : $FOLDER"
 	DIR="$DIR_OUT/$FOLDER"
 fi
  	
