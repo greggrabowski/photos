@@ -34,7 +34,7 @@
 # TO file stats before/after in each folder
 # TO DO add date to log file name
 # TO DO display progress only
-# TO DO warnining for non root users
+# TO DO warning for non root users
 
 # reset counters
 COUNTER=0
@@ -524,15 +524,13 @@ EE=`date`
 log_v "Start: $SS, End: $EE"
 log_i "Processing time : $TIME"
 
-log_i "Files before processing in $BASE_DIR : $FILES_IN_1"
-log_i "Files before processing in $DIR_OUT : $FILES_OUT_1"
-log_i "Size of $BASE_DIR before processing : $SIZE_IN_1"
-log_i "Size of $DIR_OUT before processing : $SIZE_OUT_1"
+log_i " **** BEFORE ****"
+log_i "Source directory : $BASE_DIR : files=$FILES_IN_1 : $SIZE_IN_1"
+log_i "Target directory : $DIR_OUT : files=$FILES_OUT_1 : $SIZE_OUT_1"
 
-log_i "Files after processing in $BASE_DIR : $FILES_IN_2"
-log_i "Files after processing in $DIR_OUT : $FILES_OUT_2"
-log_i "Size of $BASE_DIR after processing : $SIZE_IN_2"
-log_i "Size of $DIR_OUT after processing : $SIZE_OUT_2"
+log_i " **** AFTER ****"
+log_i "Source directory : $BASE_DIR : files=$FILES_IN_2 : $SIZE_IN_2"
+log_i "Target directory : $DIR_OUT : files=$FILES_OUT_2 : $SIZE_OUT_2"
 
 log_i "Files moved/copied      : $MODIFIED"
 log_i "Duplicates              : $DUPLICATES"
