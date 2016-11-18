@@ -33,8 +33,10 @@
 # TO DO show left files
 # TO file stats before/after in each folder
 # TO DO add date to log file name
-# TO DO display progress only
+# TO DO display progress only in one line \r
 # TO DO warning for non root users
+# TO DO add -1 option 
+# TO DO dry run option
 
 # reset counters
 COUNTER=0
@@ -53,7 +55,7 @@ SORT=0
 RENAME=1
 FSIZE=0
 FMD5=1
-
+ONE_LEVEL=0
 FOLDER=""
 
 BASE_DIR=`pwd`
@@ -106,7 +108,7 @@ function log_d {
 # ============================= 
 function show_help
 {
-    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level] [-x pattern]"
+    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level] [-x pattern] [-1]"
     echo "   -o   copy/move renamed files to target_directory and create directory structure"
     echo "   -d   display debug messages "
     echo "   -m   move files (by default files are copied)"
@@ -117,6 +119,7 @@ function show_help
     echo "   -x   exclude folders matching pattern"
     echo "   -n   keep original name"
     echo "   -k   keep duplicates in orignal/source folder"
+    echo "   -1   when sorting into output directory don't recreate the whole directory structure, include only directory where original file is located"
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
     echo "       m - make of camera"
     echo "       n - name of the model"
@@ -140,7 +143,7 @@ function show_help
     exit 1
 }
 
-while getopts "h?c:rmvl:do:sx:nf:k" opt; do
+while getopts "h?c:rmvl:do:sx:nf:k1" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -159,6 +162,7 @@ while getopts "h?c:rmvl:do:sx:nf:k" opt; do
          FMD5=0 
          FSIZE=0;;
       n) RENAME=0 ;;
+      1) ONE_LEVEL=1 ;;
     esac
 done
 
@@ -176,8 +180,8 @@ log_d  "VERBOSE=$VERBOSE"
 log_d  "SORT=$SORT"
 log_d  "RENAME=$RENAME"
 log_d  "filter_code=$filter_code"
+log_d  "one level=$ONE_LEVEL"
 log_d  "Leftovers: $@"
-
 
 FILTER=""
 #change to upper case
@@ -345,6 +349,7 @@ function rename {
   
 file=$1
 
+#log_i "Starting ...."
 # take action on each file. $f store current file name  
 MOD=$(($COUNTER % 100))
 if [ "$MOD" == 0 ]; then
@@ -406,13 +411,18 @@ if [ "$SORT" == "1" ] ; then
 
 	DIR="$DIR_OUT/SORTED/$FOLDER/"
 else
-	
 	log_d "DIR IN = $DIR_IN"
 	log_d "DIR OUT = $DIR_OUT"
-	x=`echo $BASE_DIR | wc -c`
-	x=$((x+1))
-	FOLDER=`echo $DIR_IN | cut -c $x-`
-	log_d "FOLDER : $FOLDER"
+	if [ "$ONE_LEVEL" == "1" ] ; then
+	  #LAST_DIR=echo "$pathname" |  rev |  awk -F '[/]' '{print $2}'
+	  FOLDER=`echo "$file" | rev |  awk -F '[/]' '{print $2}' | rev`
+	  FOLDER="$FOLDER/"
+	else
+	  x=`echo $BASE_DIR | wc -c`
+	  x=$((x+1))
+	  FOLDER=`echo $DIR_IN | cut -c $x-`
+	fi
+	log_i "FOLDER : $FOLDER"
 	DIR="$DIR_OUT/$FOLDER"
 fi
  	
