@@ -26,7 +26,10 @@
 #http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
 #https://maps.googleapis.com/maps/api/geocode/json?latlng=40.7470444,-073.9411611
 
-# TO DO add recommended option -a
+# TO DO add recommended option -a (~/Documents/repos/photos/rename.sh -m -s -d -v -k -x "*thumb*" -l "rename.log" -o "/share/Multimedia/my_photos")
+# TO DO add metadata updater, folder vs file name check
+# TO DO add png processing, files selection
+# TO DO detailed statistics about files
 # TO DO show left files
 # TO file stats before/after in each folder
 # TO DO add date to log file name
@@ -218,7 +221,7 @@ function exists {
     
 function count {
 c=0
-extensions="jpg jpeg mov mp4"
+extensions="jpg jpeg mov mp4 png"
 for ext in $extensions; do
   c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
@@ -488,7 +491,7 @@ while read -d '' -r file; do
 	if [ "$RENAME" = "1" ]; then
 	   rename "$file"
 	fi
-done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" -or -iname "*.mp4" \) -not -path "$SKIP" -print0)
+done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" \) -not -path "$SKIP" -print0)
 
 log_v "MODIF=$MODIFIED"
 # count files after
@@ -507,7 +510,6 @@ TIME=`printf '%02dh:%02dm:%02ds\n' $(($secs/3600)) $(($secs%3600/60)) $(($secs%6
 EE=`date`
 
 log_v "Start: $SS, End: $EE"
-
 log_i "Processing time : $TIME"
 
 log_i "Files before processing in $BASE_DIR : $FILES_IN_1"
