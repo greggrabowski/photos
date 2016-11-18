@@ -34,6 +34,7 @@
 # TO file stats before/after in each folder
 # TO DO add date to log file name
 # TO DO display progress only
+# TO DO warnining for non root users
 
 # reset counters
 COUNTER=0
@@ -322,6 +323,10 @@ else
 	exit
 fi
 
+if [ ! -d "$DIR_OUT" ] ; then
+	log_i "Creating directory $DIR_OUT"
+	mkdir -p "$DIR_OUT"
+fi
 
 # count files before
 FILES_IN_1=`count "$BASE_DIR"` 
