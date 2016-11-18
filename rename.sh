@@ -35,8 +35,6 @@
 # TO DO add date to log file name
 # TO DO display progress only in one line \r
 # TO DO warning for non root users
-# TO DO add -1 option 
-# TO DO dry run option
 
 # reset counters
 COUNTER=0
@@ -57,7 +55,7 @@ FSIZE=0
 FMD5=1
 ONE_LEVEL=0
 FOLDER=""
-
+TEST_RUN=0
 BASE_DIR=`pwd`
 DIR_OUT=`pwd`
 SKIP="qazwsxedcrfv" # unique pattern to skip
@@ -120,6 +118,7 @@ function show_help
     echo "   -n   keep original name"
     echo "   -k   keep duplicates in orignal/source folder"
     echo "   -1   when sorting into output directory don't recreate the whole directory structure, include only directory where original file is located"
+    echo "   -t   test run"
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
     echo "       m - make of camera"
     echo "       n - name of the model"
@@ -143,7 +142,7 @@ function show_help
     exit 1
 }
 
-while getopts "h?c:rmvl:do:sx:nf:k1" opt; do
+while getopts "h?c:rmvl:do:sx:nf:k1t" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -163,6 +162,7 @@ while getopts "h?c:rmvl:do:sx:nf:k1" opt; do
          FSIZE=0;;
       n) RENAME=0 ;;
       1) ONE_LEVEL=1 ;;
+      t) TEST_RUN=1 ;;
     esac
 done
 
@@ -181,6 +181,7 @@ log_d  "SORT=$SORT"
 log_d  "RENAME=$RENAME"
 log_d  "filter_code=$filter_code"
 log_d  "one level=$ONE_LEVEL"
+log_d  "test run=$TEST_RUN"
 log_d  "Leftovers: $@"
 
 FILTER=""
@@ -329,7 +330,9 @@ fi
 
 if [ ! -d "$DIR_OUT" ] ; then
 	log_i "Creating directory $DIR_OUT"
-	mkdir -p "$DIR_OUT"
+	if [ "$TEST_RUN" != 1 ]; then
+	  mkdir -p "$DIR_OUT"
+	fi
 fi
 
 # count files before
@@ -401,8 +404,6 @@ log_d "DIR_IN $DIR_IN"
 log_d "DIR $DIR"
   
 if [ "$SORT" == "1" ] ; then
-	log_d "Sorting photos into folders"
-
 	if [ "$TIME" == "" ] ; then
 		FOLDER="NO_METADATA"	
 	else
@@ -428,7 +429,9 @@ fi
  	
 if [ ! -d "$DIR" ] ; then
 	log_d "Creating directory $DIR"
-	mkdir -p "$DIR"
+	if [ "$TEST_RUN" != 1 ]; then
+	  mkdir -p "$DIR"
+	fi
 fi
 
 OUTPUT="$DIR$FILE_NAME_OUT.$EXT"
@@ -461,10 +464,14 @@ if [ ! -f "$OUTPUT" ]; then
 	
 	if [ "$CP" == 1 ] ; then
 		log_v "PICTURE : Copying file ($MODIFIED) $file to $OUTPUT"
-		cp "$file" "$OUTPUT"	
+		if [ "$TEST_RUN" != 1 ]; then
+		   cp "$file" "$OUTPUT"	
+		fi
 	else
 		log_v "PICTURE : Moving file ($MODIFIED) $file to $OUTPUT"
-	  	mv "$file" "$OUTPUT"	
+	  	if [ "$TEST_RUN" != 1 ]; then
+	  	  mv "$file" "$OUTPUT"
+	  	fi	
 	fi
 	PROCESSED=1
 else
@@ -477,7 +484,9 @@ DUPLICATES=$(($DUPLICATES+1))
 		if [ "$CP" == 0 ] ; then
 		  if [ "$KEEP_DUPLICATES" == 0 ]; then
 		    log_v "Deleting duplicate $file"
-		    rm -f "$file"
+		    if [ "$TEST_RUN" != 1 ]; then
+		      rm -f "$file"
+		    fi
 		  else
 		    log_v "Leaving duplicate $file"
 		    # FIX IT move file
@@ -499,6 +508,10 @@ done
 
 log_v " ================================= "
 }
+
+if [ "$SORT" == "1" ] ; then
+	log_d "Sorting photos into folders"
+fi
 
 while read -d '' -r file; do
 	# FIX IT
@@ -531,7 +544,7 @@ TIME=`printf '%02dh:%02dm:%02ds\n' $(($secs/3600)) $(($secs%3600/60)) $(($secs%6
 
 EE=`date`
 
-log_v "Start: $SS, End: $EE"
+log_i "Start: $SS, End: $EE"
 log_i "Processing time : $TIME"
 
 log_i " **** BEFORE ****"
