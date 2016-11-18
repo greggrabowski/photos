@@ -33,6 +33,7 @@
 # TO DO show left files
 # TO file stats before/after in each folder
 # TO DO add date to log file name
+# TO DO display progress only
 
 # reset counters
 COUNTER=0
@@ -340,7 +341,13 @@ function rename {
 file=$1
 
 # take action on each file. $f store current file name  
+MOD=$(($COUNTER % 100))
+if [ "$MOD" == 0 ]; then
+  log_i "Progress : $COUNTER/$FILES_IN_1"
+fi
+
 COUNTER=$(($COUNTER + 1))
+
 log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 
 # get directory
