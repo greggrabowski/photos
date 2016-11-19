@@ -362,11 +362,11 @@ file=$1
 DIR_IN=`echo "$file" | grep -Eo '.*[/]'`
   
 # get file extension
-EXT_1=${file##*.}
+EXT1=${file##*.}
 
 EXT=$EXT1
 if [ "$JPG" == 1 ]; then
-  if [ "$EXT1" == "JPG" ] || [ "$EXT1" == "jpeg"  ] || [ "$EXT1" == "JPEG"  ]; then
+  if [ "$EXT1" == "JPG" ] || [ "$EXT1" == "jpeg"  ] || [ "$EXT1" == "JPEG" ]; then
   	EXT="jpg"
   fi
 fi 
