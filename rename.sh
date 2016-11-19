@@ -54,6 +54,7 @@ DIRO=0;
 FSIZE=0
 FMD5=1
 ONE_LEVEL=0
+JPG=0
 FOLDER=""
 TEST_RUN=0
 BASE_DIR=`pwd`
@@ -116,6 +117,7 @@ function show_help
     echo "   -s   sort files intro folders (by month)"
     echo "   -x   exclude folders matching pattern"
     echo "   -n   keep original name"
+    echo "   -j   change all the jpg,jpeg and JPG extension to jpg"
     echo "   -k   keep duplicates in orignal/source folder"
     echo "   -1   when sorting into output directory don't recreate the whole directory structure, include only directory where original file is located"
     echo "   -t   test run"
@@ -142,7 +144,7 @@ function show_help
     exit 1
 }
 
-while getopts "h?c:rmvl:do:sx:nf:k1t" opt; do
+while getopts "h?c:rmvl:do:sx:nf:k1tj" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -158,6 +160,7 @@ while getopts "h?c:rmvl:do:sx:nf:k1t" opt; do
       o) DIRO=1;
          DIR_OUT=$OPTARG ;;
       x) SKIP=$OPTARG ;;
+      j) JPG=1 ;;
       f) filter_code=`echo $OPTARG | awk '{print toupper($0)}'`
          FMD5=0 
          FSIZE=0;;
@@ -184,6 +187,7 @@ log_d  "filter_code=$filter_code"
 log_d  "one level=$ONE_LEVEL"
 log_d  "test run=$TEST_RUN"
 log_d  "DIRO=$DIRO"
+log_d  "JPG=$JPG"
 log_d  "Leftovers: $@"
 
 FILTER=""
@@ -358,7 +362,15 @@ file=$1
 DIR_IN=`echo "$file" | grep -Eo '.*[/]'`
   
 # get file extension
-EXT=${file##*.}
+EXT_1=${file##*.}
+
+if [ "$JPG" == 1 ]; then
+  if [ "$EXT" == "JPG" ] || [ "$EXT" == "jpeg"  ] || [ "$EXT" == "JPEG"  ]; then
+  	EXT="jpg"
+  fi
+else
+  EXT=$EXT1
+fi  
   
 # get short file name (no extension) 
 FILE_NAME_IN=`echo "$file" | rev | cut -d / -f 1 | sed 's/^[^.]*.//g' | rev`
@@ -530,7 +542,7 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 
 
 	# FIX IT
-	if [ "$ROTATE" = "1" ] ; then
+	if [ "$ROTATE" == "1" ] ; then
 		jhead $file
 	fi
 	# FIX IT
@@ -538,7 +550,7 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 		log_v "PICTURE : Compressing (quality set to $COMPRESS%) file : $file"
 		convert -compress jpeg -quality "$COMPRESS" "$file" "$file"
 	fi 
-	if [ "$RENAME" = "1" ]; then
+	if [ "$RENAME" == "1" ]; then
 	   rename "$file"
 	fi
 done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" -or -iname "*.gif" -or -iname "*.m4a" \) -not -path "$SKIP" -print0)
