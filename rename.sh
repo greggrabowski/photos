@@ -8,7 +8,6 @@
 # TO DO cleanup functions
 # TO DO measure processing time
 # TO DO add option to add script to env.
-# TO DO option to remove duplicates
 # TO DO check system, do nothing if not recognized
 # TO DO check if we have all the files if cp (run in safe mode before delete)
 # TO DO count files with no metadata and log them, provide stats
@@ -51,6 +50,7 @@ ROTATE=0
 COMPRESS=0
 SORT=0
 RENAME=1
+DIRO=0;
 FSIZE=0
 FMD5=1
 ONE_LEVEL=0
@@ -155,7 +155,8 @@ while getopts "h?c:rmvl:do:sx:nf:k1t" opt; do
       l) LOG_FILE=$OPTARG ;;
       s) SORT=1 ;;
       k) KEEP_DUPLICATES=1 ;;
-      o) DIR_OUT=$OPTARG ;;
+      o) DIRO=1;
+         DIR_OUT=$OPTARG ;;
       x) SKIP=$OPTARG ;;
       f) filter_code=`echo $OPTARG | awk '{print toupper($0)}'`
          FMD5=0 
@@ -182,6 +183,7 @@ log_d  "RENAME=$RENAME"
 log_d  "filter_code=$filter_code"
 log_d  "one level=$ONE_LEVEL"
 log_d  "test run=$TEST_RUN"
+log_d  "DIRO=$DIRO"
 log_d  "Leftovers: $@"
 
 FILTER=""
@@ -352,17 +354,6 @@ function rename {
   
 file=$1
 
-#log_i "Starting ...."
-# take action on each file. $f store current file name  
-MOD=$(($COUNTER % 100))
-if [ "$MOD" == 0 ]; then
-  log_i "Progress : $COUNTER/$FILES_IN_1"
-fi
-
-COUNTER=$(($COUNTER + 1))
-
-log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
-
 # get directory
 DIR_IN=`echo "$file" | grep -Eo '.*[/]'`
   
@@ -409,8 +400,11 @@ if [ "$SORT" == "1" ] ; then
 	else
 		FOLDER=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' | awk -F '[:]' '{print $1"-"$2}'`
 	fi
-
-	DIR="$DIR_OUT/SORTED/$FOLDER/"
+	if [ "$DIRO" == 1 ]; then
+	  DIR="$DIR_OUT/$FOLDER/"
+	else
+	  DIR="$DIR_OUT/SORTED/$FOLDER/"
+	fi
 else
 	log_d "DIR IN = $DIR_IN"
 	log_d "DIR OUT = $DIR_OUT"
@@ -513,7 +507,27 @@ if [ "$SORT" == "1" ] ; then
 	log_d "Sorting photos into folders"
 fi
 
+PROGRESS=0
+STEP=$(($FILES_IN_1 / 100))
+if [ "$STEP" == 0 ]; then
+  STEP=1
+fi
+
 while read -d '' -r file; do
+#log_i "Starting ...."
+# take action on each file. $f store current file name  
+MOD=$(($COUNTER%$STEP))
+if [ "$MOD" == 0 ]; then
+  #echo -ne "\r"
+  # count real progress here
+  log_i "Progress : $PROGRESS% : ($COUNTER/$FILES_IN_1)"
+fi
+PROGRESS=$(($PROGRESS + 1))
+COUNTER=$(($COUNTER + 1))
+
+log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
+
+
 	# FIX IT
 	if [ "$ROTATE" = "1" ] ; then
 		jhead $file
@@ -528,7 +542,7 @@ while read -d '' -r file; do
 	fi
 done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" -or -iname "*.gif" -or -iname "*.m4a" \) -not -path "$SKIP" -print0)
 
-log_v "MODIF=$MODIFIED"
+log_d "MODIF=$MODIFIED"
 # count files after
 FILES_IN_2=`count "$BASE_DIR"` 
 SIZE_IN_2=`du -hs "$BASE_DIR" | cut -f1`
