@@ -385,13 +385,17 @@ TIME=`echo $CREATED | grep -Eo '[0-9]{2}:[0-9]{2}:[0-9]{2}$' | awk -F '[:]' '{pr
 MODEL=`exiftool "$file" | grep "Camera Model Name" | cut -d : -f 2 | cut -c 2-30 | tr ' ' '_'`
 
 # build output file name
-if [ "$RENAME" = 1 ]; then
+if [ "$RENAME" == 1 ]; then
   if [ "$TIME" == "" ] ; then
     log_d " NO METADATA in file $file !! "
     FILE_NAME_OUT=`echo "$FILE_NAME_IN" | sed 's/_NO_METADATA//'`
-else
-    FILE_NAME_OUT="$DATE $TIME $MODEL"
-fi
+  else
+    if [ -z "$MODEL" ] ;then
+      FILE_NAME_OUT="$DATE $TIME"
+    else
+      FILE_NAME_OUT="$DATE $TIME $MODEL"
+    fi
+  fi
 else
   # keep original name
   FILE_NAME_OUT=$FILE_NAME_IN
