@@ -507,7 +507,7 @@ if [ "$SORT" == "1" ] ; then
 	log_d "Sorting photos into folders"
 fi
 
-PROGRESS=0
+
 STEP=$(($FILES_IN_1 / 100))
 if [ "$STEP" == 0 ]; then
   STEP=1
@@ -520,9 +520,10 @@ MOD=$(($COUNTER%$STEP))
 if [ "$MOD" == 0 ]; then
   #echo -ne "\r"
   # count real progress here
+  PROGRESS=$((100*$COUNTER/$FILES_IN_1))
   log_i "Progress : $PROGRESS% : ($COUNTER/$FILES_IN_1)"
 fi
-PROGRESS=$(($PROGRESS + 1))
+
 COUNTER=$(($COUNTER + 1))
 
 log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
