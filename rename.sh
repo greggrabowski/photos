@@ -364,13 +364,12 @@ DIR_IN=`echo "$file" | grep -Eo '.*[/]'`
 # get file extension
 EXT_1=${file##*.}
 
+EXT=$EXT1
 if [ "$JPG" == 1 ]; then
-  if [ "$EXT" == "JPG" ] || [ "$EXT" == "jpeg"  ] || [ "$EXT" == "JPEG"  ]; then
+  if [ "$EXT1" == "JPG" ] || [ "$EXT1" == "jpeg"  ] || [ "$EXT1" == "JPEG"  ]; then
   	EXT="jpg"
   fi
-else
-  EXT=$EXT1
-fi  
+fi 
   
 # get short file name (no extension) 
 FILE_NAME_IN=`echo "$file" | rev | cut -d / -f 1 | sed 's/^[^.]*.//g' | rev`
