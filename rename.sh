@@ -20,7 +20,6 @@
 # TO DO separate script option to update files with metadata
 # TO DO format output into table (before/after)
 # FIX IT counting files, correct folders, and naming of variables
-# TO DO describe criteria for comparison
 # reference links
 #http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
 #https://maps.googleapis.com/maps/api/geocode/json?latlng=40.7470444,-073.9411611
@@ -41,7 +40,7 @@ MODIFIED=0
 DUPLICATES=0
 KEEP_DUPLICATES=0
  
-# Initialize our own variables:
+# Initialize  variables:
 VERBOSE=0
 DEBUG=0
 LOG_FILE=""
@@ -55,6 +54,7 @@ FSIZE=0
 FMD5=1
 ONE_LEVEL=0
 JPG=0
+UPDATE_TIME=0
 FOLDER=""
 TEST_RUN=0
 BASE_DIR=`pwd`
@@ -113,7 +113,7 @@ function show_help
     echo "   -m   move files (by default files are copied)"
     echo "   -l   log messages into log_file"
     echo "   -r   automatically rotate files"
-    echo "   -c   compress files with compression_level"
+    echo "   -c   compress filartes with compression_level"
     echo "   -s   sort files intro folders (by month)"
     echo "   -x   exclude folders matching pattern"
     echo "   -n   keep original name"
@@ -121,6 +121,7 @@ function show_help
     echo "   -k   keep duplicates in orignal/source folder"
     echo "   -1   when sorting into output directory don't recreate the whole directory structure, include only directory where original file is located"
     echo "   -t   test run"
+    echo "   -u   update time in metadata based on the folder name"
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
     echo "       m - make of camera"
     echo "       n - name of the model"
@@ -165,6 +166,7 @@ while getopts "h?c:rmvl:do:sx:nf:k1tj" opt; do
          FMD5=0 
          FSIZE=0;;
       n) RENAME=0 ;;
+      n) UPDATE_TIME=1 ;;
       1) ONE_LEVEL=1 ;;
       t) TEST_RUN=1 ;;
     esac
@@ -188,6 +190,7 @@ log_d  "one level=$ONE_LEVEL"
 log_d  "test run=$TEST_RUN"
 log_d  "DIRO=$DIRO"
 log_d  "JPG=$JPG"
+log_d  "UPDATE_TIME=$UPDATE_TIME"
 log_d  "Leftovers: $@"
 
 FILTER=""
@@ -377,10 +380,14 @@ FILE_NAME_IN=`echo "$file" | rev | cut -d / -f 1 | sed 's/^[^.]*.//g' | rev`
 # read creation time from metadata
 CREATED=`exiftool "$file" | grep -m 1 "^Create"`
 
+if [ -z "$CREATED" ]; then
+  CREATED=`exiftool "$file" | grep -m 1 "^Date Created"`
+fi
+
 #extract date and time and reformat
 DATE=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' | awk -F '[:]' '{print $1"-"$2"-"$3}'`
-TIME=`echo $CREATED | grep -Eo '[0-9]{2}:[0-9]{2}:[0-9]{2}$' | awk -F '[:]' '{print $1"_"$2"_"$3}'`
-  
+TIME=`echo $CREATED | grep -Eo '[0-9]{2}:[0-9]{2}:[0-9]{2}$' | awk -F '[:]' '{print $1"_"$2"_"$3}'`  
+
 # read model name and replace spaces with underscore
 MODEL=`exiftool "$file" | grep "Camera Model Name" | cut -d : -f 2 | cut -c 2-30 | tr ' ' '_'`
 
