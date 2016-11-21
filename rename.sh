@@ -443,9 +443,12 @@ if [ "$CHECK_DUPLICATES" == 1 ]; then
          log_v "Found duplicate in ref folder : $file | $filex"
          
 		 if [ "$KEEP_DUPLICATES" == 0 ]; then
-		    log_v "Deleting duplicate $file"
-		    if [ "$TEST_RUN" != 1 ]; then
-		      rm -f "$file"
+		    
+		    if [ "$file" != "$filex" ]; then
+		      log_v "Deleting duplicate $file"
+		      if [ "$TEST_RUN" != 1 ]; then
+		        rm -f "$file"
+		      fi
 		    fi
 		fi
 
