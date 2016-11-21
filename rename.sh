@@ -145,7 +145,7 @@ function show_help
     exit 1
 }
 
-while getopts "h?c:rmvl:do:sx:nf:k1tj" opt; do
+while getopts "h?c:rmvl:do:sx:nf:k1tju" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -166,7 +166,7 @@ while getopts "h?c:rmvl:do:sx:nf:k1tj" opt; do
          FMD5=0 
          FSIZE=0;;
       n) RENAME=0 ;;
-      n) UPDATE_TIME=1 ;;
+      u) UPDATE_TIME=1 ;;
       1) ONE_LEVEL=1 ;;
       t) TEST_RUN=1 ;;
     esac
@@ -239,7 +239,8 @@ function count {
 c=0
 extensions="jpg jpeg mov mp4 png gif m4a"
 for ext in $extensions; do
-  c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 | tr -d -c "\000" | wc -c)
+  c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 \
+     | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
 done
 echo $c
@@ -385,11 +386,14 @@ if [ -z "$CREATED" ]; then
 fi
 
 #extract date and time and reformat
-DATE=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' | awk -F '[:]' '{print $1"-"$2"-"$3}'`
-TIME=`echo $CREATED | grep -Eo '[0-9]{2}:[0-9]{2}:[0-9]{2}$' | awk -F '[:]' '{print $1"_"$2"_"$3}'`  
+DATE=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' \
+     | awk -F '[:]' '{print $1"-"$2"-"$3}'`
+TIME=`echo $CREATED | grep -Eo '[0-9]{2}:[0-9]{2}:[0-9]{2}$' \
+     | awk -F '[:]' '{print $1"_"$2"_"$3}'`  
 
 # read model name and replace spaces with underscore
-MODEL=`exiftool "$file" | grep "Camera Model Name" | cut -d : -f 2 | cut -c 2-30 | tr ' ' '_'`
+MODEL=`exiftool "$file" | grep "Camera Model Name" | cut -d : -f 2 \
+      | cut -c 2-30 | tr ' ' '_'`
 
 # build output file name
 if [ "$RENAME" == 1 ]; then
@@ -420,7 +424,8 @@ if [ "$SORT" == "1" ] ; then
 	if [ "$TIME" == "" ] ; then
 		FOLDER="NO_METADATA"	
 	else
-		FOLDER=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' | awk -F '[:]' '{print $1"-"$2}'`
+		FOLDER=`echo $CREATED | grep -Eo '[0-9]{4}:[0-9]{2}:[0-9]{2}' \
+		       | awk -F '[:]' '{print $1"-"$2}'`
 	fi
 	if [ "$DIRO" == 1 ]; then
 	  DIR="$DIR_OUT/$FOLDER/"
@@ -453,15 +458,11 @@ fi
 OUTPUT="$DIR$FILE_NAME_OUT.$EXT"
 log_d "OUTPUT <- $OUTPUT"  
 
-POSTFIX=""
-#MD_IN=`$MD5_CMD "$file" | awk -F '[ ]' '{print $1}'` # FIX IT change it to function 
+POSTFIX="" 
 
 log_d "postfix : $POSTFIX"
 PROCESSED=0
 while [ "$PROCESSED" = 0 ] ; do
-
-#MD_OUT=`$MD5_CMD "$OUTPUT" | awk -F '[ ]' '{print $1}'`
-
 
 log_d "IN  : $MD_IN :$file"
 log_d "OUT : $MD_OUT : $OUTPUT"
@@ -492,7 +493,7 @@ if [ ! -f "$OUTPUT" ]; then
 	PROCESSED=1
 else
   if [ $same_files -eq 1 ]; then
-log_v "PICTURE : Duplicates found: $file | $OUTPUT" # FIX IT log source and destination file
+log_v "PICTURE : Duplicates found: $file | $OUTPUT"
 DUPLICATES=$(($DUPLICATES+1))
 	# if same file (same md5) exists do nothing
 	if [ "$file" != "$OUTPUT" ]; then
@@ -535,6 +536,8 @@ if [ "$STEP" == 0 ]; then
   STEP=1
 fi
 
+# ========================== MAIN LOOP =============================
+
 while read -d '' -r file; do
 #log_i "Starting ...."
 # take action on each file. $f store current file name  
@@ -550,6 +553,23 @@ COUNTER=$(($COUNTER + 1))
 
 log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 
+	if [ "$UPDATE_TIME" == "1" ]; then
+	  # get folder name
+	  FOLDER=`echo "$file" | rev |  awk -F '[/]' '{print $2}' | rev`
+	  # check if folder has format YYYY-MM
+	  if [[ "$FOLDER" =~ [0-9]{4}-[0-9]{2} ]]; then
+		  # convert folder time to epoch
+		  FOLDER_EPOCH=`date -j -f "%Y-%m-%d %H:%M:%S" "$FOLDER-01 00:00:01" "+%s"`
+		  #get start date and add counter 
+		  NEW_DATE=$(($FOLDER_EPOCH + $COUNTER))
+		  # convert epoch to time and date
+		  META_DATE=`date -r "$NEW_DATE" +'%Y-%m-%d %H:%M:%S'`
+		  log_v "Updating time in file $file to $META_DATE"
+		  if [ "$TEST_RUN" != 1 ]; then
+	  	    exiftool -createdate="$META_DATE" "$file"
+	  	  fi
+	  fi
+	fi
 
 	# FIX IT
 	if [ "$ROTATE" == "1" ] ; then
@@ -563,7 +583,11 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 	if [ "$RENAME" == "1" ]; then
 	   rename "$file"
 	fi
-done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" -or -iname "*.gif" -or -iname "*.m4a" \) -not -path "$SKIP" -print0)
+done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or \
+  -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" -or -iname "*.gif" \
+  -or -iname "*.m4a" \) -not -path "$SKIP" -print0)
+
+# ======================= END OF MAIN LOOP =============================
 
 log_d "MODIF=$MODIFIED"
 # count files after
