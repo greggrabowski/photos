@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# TO DO look for duplicates and remove them
 # TO DO dependencies, check if installed if not quit with warrning
 # TO DO notify about the risk when copying photos
 # TO DO change postfix to number
@@ -315,7 +316,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 	log_v "We are using Linux"
 	MD5_CMD="md5sum"
 	# check if all tools are installed 
-    if [ `exists exiftool md5sum` != 0 ]; then
+    if [ `exists exiftool md5sum date awk sed` != 0 ]; then
        log_v "Not all tools are installed"
      exit
     fi
@@ -323,7 +324,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 	log_v "We are using MacOS"	
 	MD5_CMD="md5 -r"
 	# check if all tools are installed 
-    if [ `exists exiftool md5` != 0 ]; then
+    if [ `exists exiftool md5 date awk sed` != 0 ]; then
        log_v "Not all tools are installed"
      exit
     fi
@@ -555,18 +556,19 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 
 	if [ "$UPDATE_TIME" == "1" ]; then
 	  # get folder name
-	  FOLDER=`echo "$file" | rev |  awk -F '[/]' '{print $2}' | rev`
+	  # FIX IT read metadata first and update / or update in empty
+	  FOLDER_DATE=`echo "$file" | rev |  awk -F '[/]' '{print $2}' | rev | cut -c -7`
 	  # check if folder has format YYYY-MM
-	  if [[ "$FOLDER" =~ [0-9]{4}-[0-9]{2} ]]; then
+	  if [[ "$FOLDER_DATE" =~ [0-9]{4}-[0-9]{2} ]]; then
 		  # convert folder time to epoch
-		  FOLDER_EPOCH=`date -j -f "%Y-%m-%d %H:%M:%S" "$FOLDER-01 00:00:01" "+%s"`
+		  FOLDER_EPOCH=`date -j -f "%Y-%m-%d %H:%M:%S" "$FOLDER_DATE-01 00:00:01" "+%s"`
 		  #get start date and add counter 
 		  NEW_DATE=$(($FOLDER_EPOCH + $COUNTER))
 		  # convert epoch to time and date
 		  META_DATE=`date -r "$NEW_DATE" +'%Y-%m-%d %H:%M:%S'`
 		  log_v "Updating time in file $file to $META_DATE"
 		  if [ "$TEST_RUN" != 1 ]; then
-	  	    exiftool -createdate="$META_DATE" "$file"
+	  	    exiftool -createdate="$META_DATE" "$file" -overwrite_original
 	  	  fi
 	  fi
 	fi
