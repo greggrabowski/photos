@@ -56,6 +56,8 @@ FMD5=1
 ONE_LEVEL=0
 JPG=0
 UPDATE_TIME=0
+CHECK_DUPLICATES=0
+REF_FOLDER=""
 FOLDER=""
 TEST_RUN=0
 BASE_DIR=`pwd`
@@ -108,7 +110,8 @@ function log_d {
 # ============================= 
 function show_help
 {
-    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] [-c compression_level] [-x pattern] [-1]"
+    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] \
+         [-c compression_level] [-x pattern] [-1] [k] [j] [t] [-z ref_folder]"
     echo "   -o   copy/move renamed files to target_directory and create directory structure"
     echo "   -d   display debug messages "
     echo "   -m   move files (by default files are copied)"
@@ -123,6 +126,7 @@ function show_help
     echo "   -1   when sorting into output directory don't recreate the whole directory structure, include only directory where original file is located"
     echo "   -t   test run"
     echo "   -u   update time in metadata based on the folder name"
+    echo "   -z   look for duplicate in ref_folder if found delete source file"
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
     echo "       m - make of camera"
     echo "       n - name of the model"
@@ -146,7 +150,7 @@ function show_help
     exit 1
 }
 
-while getopts "h?c:rmvl:do:sx:nf:k1tju" opt; do
+while getopts "h?c:rmvl:do:sx:nf:k1tjuz:" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -170,6 +174,8 @@ while getopts "h?c:rmvl:do:sx:nf:k1tju" opt; do
       u) UPDATE_TIME=1 ;;
       1) ONE_LEVEL=1 ;;
       t) TEST_RUN=1 ;;
+      z) CHECK_DUPLICATES=1
+		 REF_FOLDER=$OPTARG ;;
     esac
 done
 
@@ -192,6 +198,7 @@ log_d  "test run=$TEST_RUN"
 log_d  "DIRO=$DIRO"
 log_d  "JPG=$JPG"
 log_d  "UPDATE_TIME=$UPDATE_TIME"
+log_d  "CHECK_DUPLICATES=$CHECK_DUPLICATES, REF_FOLDER=$REF_FOLDER"
 log_d  "Leftovers: $@"
 
 FILTER=""
@@ -396,6 +403,7 @@ TIME=`echo $CREATED | grep -Eo '[0-9]{2}:[0-9]{2}:[0-9]{2}$' \
 MODEL=`exiftool "$file" | grep "Camera Model Name" | cut -d : -f 2 \
       | cut -c 2-30 | tr ' ' '_'`
 
+
 # build output file name
 if [ "$RENAME" == 1 ]; then
   if [ "$TIME" == "" ] ; then
@@ -420,6 +428,32 @@ DIR="$DIR_IN"
   
 log_d "DIR_IN $DIR_IN"
 log_d "DIR $DIR"
+ 
+#check if file doesn't exist
+if [ "$CHECK_DUPLICATES" == 1 ]; then
+  YY_MM=`echo "$DATE" | cut -c -7`
+
+    #are_same "$file" "$OUTPUT"
+    while read -d '' -r filex; do
+      log_v "Found similar in $filex"
+      are_same "$file" "$filex"
+      duplicates=$?
+      
+       if [ $duplicates -eq 1 ]; then
+         log_v "Found duplicate in ref folder : $file | $filex"
+         
+		 if [ "$KEEP_DUPLICATES" == 0 ]; then
+		    log_v "Deleting duplicate $file"
+		    if [ "$TEST_RUN" != 1 ]; then
+		      rm -f "$file"
+		    fi
+		fi
+
+         
+       fi
+    done < <(find "$REF_FOLDER" -path "*$YY_MM*" -type f \
+                  -iname "$FILE_NAME_OUT.$EXT" -print0)
+fi
   
 if [ "$SORT" == "1" ] ; then
 	if [ "$TIME" == "" ] ; then
@@ -474,9 +508,6 @@ same_files=$?
 log_d "same_files = $same_files"
 
 if [ ! -f "$OUTPUT" ]; then
-	log_d "$OUTPUT"
-  	log_d "$MD_IN"
-	log_d "$MD_OUT"
 
 	MODIFIED=$(($MODIFIED+1))
 	
