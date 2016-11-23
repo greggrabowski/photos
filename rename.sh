@@ -24,7 +24,10 @@
 # reference links
 #http://nominatim.openstreetmap.org/reverse.php?format=json&lat=54.36352677857562&lon=18.62155795097351&zoom=
 #https://maps.googleapis.com/maps/api/geocode/json?latlng=40.7470444,-073.9411611
-
+#exiftool . | grep "GPS Pos" | sed "s/GPS Position //g; s/deg/|/g; s/[,':]/|/g; s/'\ '//g; s/N/|N/g; s/S/|S/g; s/E/|E/g; s/W/|W/g" | awk  -F "\|" '{lat=$2+$3/60+4/3600; lon=$6+$7/60+8/3600; if ($5 == "S") lat=-lat; if ($9 == "W") lon=-lon; printf("http://nominatim.openstreetmap.org/reverse.php?format=json&lat=%.4f&lon=%.4f\n",lat,lon)}' 
+#echo "$GPS" | sed "s/GPS Position //g; s/deg/|/g; s/[,':]/|/g; s/'\ '//g; s/N/|N/g; s/S/|S/g; s/E/|E/g; s/W/|W/g" | awk  -F "\|" '{lat=$2+$3/60+4/3600; lon=$6+$7/60+8/3600; if ($5 == "S") lat=-lat; if ($10 == "W") lon=-lon; printf("%.4f\n%.4f\n",lat,lon)}' 
+#curl `exiftool . | grep "GPS Pos" | sed "s/GPS Position //g; s/deg/|/g; s/[,':]/|/g; s/'\ '//g; s/N/|N/g; s/S/|S/g; s/E/|E/g; s/W/|W/g" | awk  -F "\|" '{lat=$2+$3/60+4/3600; lon=$6+$7/60+8/3600; if ($5 == "S") lat=-lat; if ($9 == "W") lon=-lon; printf("http://nominatim.openstreetmap.org/reverse.php?format=json&lat=%.4f&lon=%.4f\n",lat,lon)}'` | jq -r ".address"
+#exiftool "DSC_0136 (2).JPG" | grep "Latitude  " | sed -E "s/.*:|\'|\"//g" | awk '{print $1" "  $3" " $4}'
 # TO DO add recommended option -a (~/Documents/repos/photos/rename.sh -m -s -d -v -k -x "*thumb*" -l "rename.log" -o "/share/Multimedia/my_photos")
 # TO DO add metadata updater, folder vs file name check
 # TO DO add png processing, files selection
@@ -34,6 +37,16 @@
 # TO DO add date to log file name
 # TO DO display progress only in one line \r
 # TO DO warning for non root users
+
+#read -p "Continue (y/n)?" CONT
+#read -p "Are you sure? " -n 1 -r
+#echo    # (optional) move to a new line
+#if [[ $REPLY =~ ^[Yy]$ ]]
+#then
+    # run command
+#fi
+
+#f [[ $EUID -ne 0 ]]; then
 
 # reset counters
 COUNTER=0
@@ -54,6 +67,7 @@ DIRO=0;
 FSIZE=0
 FMD5=1
 ONE_LEVEL=0
+UPDATE_GEO=0
 JPG=0
 UPDATE_TIME=0
 CHECK_DUPLICATES=0
@@ -111,7 +125,7 @@ function log_d {
 function show_help
 {
     echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] \
-         [-c compression_level] [-x pattern] [-1] [k] [j] [t] [-z ref_folder]"
+         [-c compression_level] [-x pattern] [-1] [k] [j] [t] [-z ref_folder] [-g]"
     echo "   -o   copy/move renamed files to target_directory and create directory structure"
     echo "   -d   display debug messages "
     echo "   -m   move files (by default files are copied)"
@@ -127,6 +141,7 @@ function show_help
     echo "   -t   test run"
     echo "   -u   update time in metadata based on the folder name"
     echo "   -z   look for duplicate in ref_folder if found delete source file"
+    echo "   -g   update metadata comment using geolocation (coutry, city, etc)" 
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
     echo "       m - make of camera"
     echo "       n - name of the model"
@@ -150,7 +165,7 @@ function show_help
     exit 1
 }
 
-while getopts "h?c:rmvl:do:sx:nf:k1tjuz:" opt; do
+while getopts "h?c:rmvl:do:sx:nf:k1tjuz:g" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -167,6 +182,7 @@ while getopts "h?c:rmvl:do:sx:nf:k1tjuz:" opt; do
          DIR_OUT=$OPTARG ;;
       x) SKIP=$OPTARG ;;
       j) JPG=1 ;;
+      g) UPDATE_GEO=1 ;;
       f) filter_code=`echo $OPTARG | awk '{print toupper($0)}'`
          FMD5=0 
          FSIZE=0;;
@@ -197,6 +213,7 @@ log_d  "one level=$ONE_LEVEL"
 log_d  "test run=$TEST_RUN"
 log_d  "DIRO=$DIRO"
 log_d  "JPG=$JPG"
+log_d  "UPDATE_GEO=$UPDATE_GEO"
 log_d  "UPDATE_TIME=$UPDATE_TIME"
 log_d  "CHECK_DUPLICATES=$CHECK_DUPLICATES, REF_FOLDER=$REF_FOLDER"
 log_d  "Leftovers: $@"
@@ -365,6 +382,43 @@ SS=`date`
 
 log_v "BASE_DIR=$BASE_DIR"
 
+function update_comments {
+# get GPS position and extract latitude and longitude
+LAT_TXT=`exiftool "$1" | grep "Latitude  " | sed -E "s/.*:|\'|\"//g"`
+LON_TXT=`exiftool "$1" | grep "Longitude  " | sed -E "s/.*:|\'|\"//g"`
+LAT=`echo "$LAT_TXT" | awk '{lat=$1+$3/60+4/3600; if ($5 == "S") lat=-lat; printf("%.4f",lat)}'`
+LON=`echo "$LON_TXT" | awk '{lon=$1+$3/60+4/3600; if ($5 == "W") lon=-lon; printf("%.4f",lon)}'`
+
+# get geo-location
+GLINK="http://nominatim.openstreetmap.org/reverse.php?format=json&lat=$LAT&lon=$LON"
+
+# prepare the comments
+GEODATA=`curl --connect-timeout 3 -s "$GLINK"`
+COUNTRY=`echo $GEODATA | jq '.address.country'`
+COUNTY=`echo $GEODATA | jq '.address.county'`
+CITY=`echo $GEODATA | jq '.address.city'`
+ROAD=`echo $GEODATA | jq '.address.road'`
+
+COMMENT=''
+if [ "$COUNTRY" != "null" ]; then
+  COMMENT="Country: $COUNTRY; "
+fi
+if [ "$COUNTY" != "null" ]; then
+  COMMENT="$COMMENT""County: $COUNTY; "
+fi
+if [ "$CITY" != "null" ]; then
+  COMMENT="$COMMENT""City: $CITY; "
+fi
+if [ "$ROAD" != "null" ]; then
+  COMMENT="$COMMENT""Road: $ROAD; "
+fi
+if [ ! -z "$COMMENT" ]; then
+		  log_v "Updating comments in $file to :\n $COMMENT"
+		  if [ "$TEST_RUN" != 1 ]; then
+	  	    exiftool -q -comment="$COMMENT" "$1" -overwrite_original
+	  	  fi
+	  	  fi
+}
 
 function rename {
   
@@ -588,6 +642,12 @@ COUNTER=$(($COUNTER + 1))
 
 log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 
+	# FIX IT
+	if [ "$UPDATE_GEO" == "1" ] ; then
+		update_comments "$file"
+	fi
+
+
 	if [ "$UPDATE_TIME" == "1" ]; then
 	  # get folder name
 	  # FIX IT read metadata first and update / or update in empty
@@ -602,7 +662,7 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 		  META_DATE=`date -r "$NEW_DATE" +'%Y-%m-%d %H:%M:%S'`
 		  log_v "Updating time in file $file to $META_DATE"
 		  if [ "$TEST_RUN" != 1 ]; then
-	  	    exiftool -createdate="$META_DATE" "$file" -overwrite_original
+	  	    exiftool -q -createdate="$META_DATE" "$file" -overwrite_original
 	  	  fi
 	  fi
 	fi
