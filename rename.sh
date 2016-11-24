@@ -165,7 +165,7 @@ function show_help
     exit 1
 }
 
-while getopts "h?c:rmvl:do:sx:nf:k1tjuz:g" opt; do
+while getopts "1c:df:ghjkl:mno:rstuvx:z:?" opt; do
     case "$opt" in
       h|\?)
         show_help
