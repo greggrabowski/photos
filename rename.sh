@@ -37,10 +37,9 @@
 # TO DO add date to log file name
 # TO DO display progress only in one line \r
 # TO DO warning for non root users
-# TO DO if file are have same attribute keep bigger
 # TO DO smarter dependencies check (based on the selection)
 # TO DO keeping duplicates in folders
-# TO DO smarte files comparison
+# TO DO smarter files comparison
 
 #read -p "Continue (y/n)?" CONT
 #read -p "Are you sure? " -n 1 -r
@@ -70,6 +69,7 @@ RENAME=1
 DIRO=0;
 FSIZE=0
 FMD5=1
+FMAE=0
 ONE_LEVEL=0
 UPDATE_GEO=0
 JPG=0
@@ -167,10 +167,16 @@ function show_help
     echo "      m - camera manufacturer"
     echo "      n - type of the model"
     echo "      t - creation time"
+    echo "      w - image width"
+    echo "      h - image height"
+    echo "      i - image ID"
+    echo "      c - checksum (MD5)"
+    echo "      s - file size"
+    echo "      x - mean absolute error (normalized), average channel error distance"
 # TO DO -i option (input folder)
     exit 1
 }
-	
+    	
 while getopts "1bc:df:ghjkl:mno:rstuvx:z:?" opt; do
     case "$opt" in
       h|\?)
@@ -240,6 +246,7 @@ while read -n1 character; do
     	I) APPENDIX="^Image Unique ID" ;;
     	C) FMD5=1 ;;
     	S) FSIZE=1 ;;
+    	X) FMAE=1 ;;
 		*) APPENDIX="IGNORE" ;;
   esac
 
@@ -342,6 +349,7 @@ fi
 # FIX IT do it only for jpg
 # FIX IT handle errors
 if [ "$FMAE" == "1" ]; then
+if [ "$EXT1" == "JPG" ] || [ "$EXT1" == "jpeg"  ] || [ "$EXT1" == "JPEG" ]; then
 MAE=`compare -metric MAE "$1" "$2" null: 2>&1 | \
     awk '{print $2}' | sed -E "s/\(|\)//g"`
 
@@ -349,6 +357,7 @@ THRESHOLD=0.015
 if (( $(bc <<< "$MAE > $THRESHOLD") )) ; then
   log_v "MAE ($MAE) > THRESHOLD ($THRESHOLD)"
   return 0
+fi
 fi
 fi
 #compare -metric MAE 1.jpg 1compressed20.jpg null: 2>&1 | awk '{print $2}' | sed -E "s/\(|\)//g"
@@ -361,7 +370,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 	log_v "We are using Linux"
 	MD5_CMD="md5sum"
 	# check if all tools are installed 
-    if [ `exists exiftool md5sum date awk sed` != 0 ]; then
+    if [ `exists exiftool md5sum date awk sed compare convert` != 0 ]; then
        log_v "Not all tools are installed"
      exit
     fi
@@ -369,7 +378,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 	log_v "We are using MacOS"	
 	MD5_CMD="md5 -r"
 	# check if all tools are installed 
-    if [ `exists exiftool md5 date awk sed` != 0 ]; then
+    if [ `exists exiftool md5 date awk sed compare convert` != 0 ]; then
        log_v "Not all tools are installed"
      exit
     fi
