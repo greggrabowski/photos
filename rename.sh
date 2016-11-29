@@ -71,6 +71,7 @@ DIRO=0;
 FSIZE=0
 FMD5=1
 FMAE=0
+BACKUP=0
 ONE_LEVEL=0
 UPDATE_GEO=0
 JPG=0
@@ -146,6 +147,7 @@ function show_help
     echo "   -k   keep duplicates in orignal/source folder"
     echo "   -1   when sorting into output directory don't recreate the whole directory structure, include only directory where original file is located"
     echo "   -t   test run"
+    echo "   -p   copy original files into backup_location"
     echo "   -u   update time in metadata based on the folder name"
     echo "   -z   look for duplicate in ref_folder if found delete source file"
     echo "   -g   update metadata comment using geolocation (coutry, city, etc)" 
@@ -178,7 +180,7 @@ function show_help
     exit 1
 }
     	
-while getopts "1bc:df:ghjkl:mno:rstuvx:z:?" opt; do
+while getopts "1bc:df:ghjkl:mno:p:rstuvx:z:?" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -201,6 +203,8 @@ while getopts "1bc:df:ghjkl:mno:rstuvx:z:?" opt; do
          FMD5=0 
          FSIZE=0;;
       n) RENAME=0 ;;
+      p) BACKUP=1; 
+         BCK_DIR=$OPTARG ;;
       u) UPDATE_TIME=1 ;;
       1) ONE_LEVEL=1 ;;
       t) TEST_RUN=1 ;;
@@ -230,6 +234,7 @@ log_d "DIRO=$DIRO"
 log_d "JPG=$JPG"
 log_d "UPDATE_GEO=$UPDATE_GEO"
 log_d "UPDATE_TIME=$UPDATE_TIME"
+log_d "BACKUP=$BACKUP, BCK_DIR=$BCK_DIR"
 log_d "CHECK_DUPLICATES=$CHECK_DUPLICATES, REF_FOLDER=$REF_FOLDER"
 log_d "Leftovers: $@"
 
@@ -668,7 +673,24 @@ if [ "$STEP" == 0 ]; then
   STEP=1
 fi
 
+# do backup if set
+if [ "$BACKUP" -eq "1" ]; then
+  if [ ! -d "$BCK_DIR" ] ; then
+	log_d "Creating directory $BCK_DIR"
+	if [ "$TEST_RUN" != 1 ]; then
+	  mkdir -p "$BCK_DIR"
+	fi
+	log_d "Copying into $BCK_DIR"
+	if [ "$TEST_RUN" != 1 ]; then
+	  cp -rf "$BASE_DIR/" "$BCK_DIR"
+	fi
+	
+  fi
+fi
+exit
 # ========================== MAIN LOOP =============================
+
+
 
 while read -d '' -r file; do
 #log_i "Starting ...."
