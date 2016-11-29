@@ -39,7 +39,8 @@
 # TO DO warning for non root users
 # TO DO smarter dependencies check (based on the selection)
 # TO DO keeping duplicates in folders
-# TO DO smarter files comparison
+# TO DO copy original files/backup before processing
+# TO DO add long options
 
 #read -p "Continue (y/n)?" CONT
 #read -p "Are you sure? " -n 1 -r
@@ -353,7 +354,7 @@ if [ "$EXT1" == "JPG" ] || [ "$EXT1" == "jpeg"  ] || [ "$EXT1" == "JPEG" ]; then
 MAE=`compare -metric MAE "$1" "$2" null: 2>&1 | \
     awk '{print $2}' | sed -E "s/\(|\)//g"`
 
-THRESHOLD=0.015
+THRESHOLD=0.01
 if (( $(bc <<< "$MAE > $THRESHOLD") )) ; then
   log_v "MAE ($MAE) > THRESHOLD ($THRESHOLD)"
   return 0
@@ -693,12 +694,13 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 	if [ "$UPDATE_TIME" == "1" ]; then
 	  # get folder name
 	  # FIX IT read metadata first and update / or update in empty
-	  # FIX IT do not update if there is no space after YYYY-MM echo ${var:0:1}
-	  FOLDER_DATE=`echo "$file" | rev |  awk -F '[/]' '{print $2}' | rev | cut -c -7`
+	  FOLDER_DATE=`echo "$file" | rev |  awk -F '[/]' '{print $2}' | rev | cut -c -8`
 	  # check if folder has format YYYY-MM
-	  if [[ "$FOLDER_DATE" =~ [0-9]{4}-[0-9]{2} ]]; then
+	  
+	  if [[ "$FOLDER_DATE " =~ [0-9]{4}-[0-9]{2}[" "] ]]; then
 		  # convert folder time to epoch
-		  FOLDER_EPOCH=`date -j -f "%Y-%m-%d %H:%M:%S" "$FOLDER_DATE-01 00:00:01" "+%s"`
+		  echo "Updating $FOLDER_DATE $file"
+		  FOLDER_EPOCH=`date -j -f "%Y-%m-%d %H:%M:%S" "${FOLDER_DATE:0:7}-01 00:00:01" "+%s"`
 		  #get start date and add counter 
 		  NEW_DATE=$(($FOLDER_EPOCH + $COUNTER))
 		  # convert epoch to time and date
@@ -747,11 +749,17 @@ EE=`date`
 log_i "Start: $SS, End: $EE"
 log_i "Processing time : $TIME"
 
-log_i " **** BEFORE ****"
+log_i " ****************************"
+log_i " ********** BEFORE **********"
+log_i " ****************************"
+
 log_i "Source directory : $BASE_DIR : files=$FILES_IN_1 : $SIZE_IN_1"
 log_i "Target directory : $DIR_OUT : files=$FILES_OUT_1 : $SIZE_OUT_1"
 
-log_i " **** AFTER ****"
+log_i " ****************************"
+log_i " ********** AFTER ***********"
+log_i " ****************************"
+
 log_i "Source directory : $BASE_DIR : files=$FILES_IN_2 : $SIZE_IN_2"
 log_i "Target directory : $DIR_OUT : files=$FILES_OUT_2 : $SIZE_OUT_2"
 
