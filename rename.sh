@@ -37,6 +37,10 @@
 # TO DO add date to log file name
 # TO DO display progress only in one line \r
 # TO DO warning for non root users
+# TO DO if file are have same attribute keep bigger
+# TO DO smarter dependencies check (based on the selection)
+# TO DO keeping duplicates in folders
+# TO DO smarte files comparison
 
 #read -p "Continue (y/n)?" CONT
 #read -p "Are you sure? " -n 1 -r
@@ -74,6 +78,7 @@ CHECK_DUPLICATES=0
 REF_FOLDER=""
 FOLDER=""
 TEST_RUN=0
+KEEP_BIGGER=0
 BASE_DIR=`pwd`
 DIR_OUT=`pwd`
 SKIP="qazwsxedcrfv" # unique pattern to skip
@@ -124,11 +129,12 @@ function log_d {
 # ============================= 
 function show_help
 {
-    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-l log_file] [-r] \
+    echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-b] [-l log_file] [-r] \
          [-c compression_level] [-x pattern] [-1] [k] [j] [t] [-z ref_folder] [-g]"
     echo "   -o   copy/move renamed files to target_directory and create directory structure"
     echo "   -d   display debug messages "
     echo "   -m   move files (by default files are copied)"
+    echo "   -b   keep bigger file if same/similar files found"
     echo "   -l   log messages into log_file"
     echo "   -r   automatically rotate files"
     echo "   -c   compress filartes with compression_level"
@@ -164,8 +170,8 @@ function show_help
 # TO DO -i option (input folder)
     exit 1
 }
-
-while getopts "1c:df:ghjkl:mno:rstuvx:z:?" opt; do
+	
+while getopts "1bc:df:ghjkl:mno:rstuvx:z:?" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -173,6 +179,7 @@ while getopts "1c:df:ghjkl:mno:rstuvx:z:?" opt; do
       c) COMPRESS=$OPTARG ;;
       r) ROTATE=1 ;;
       m) CP=0 ;;
+      b) KEEP_BIGGER=1 ;;
       d) DEBUG=1 ;;
       v) VERBOSE=1 ;;
       l) LOG_FILE=$OPTARG ;;
@@ -200,23 +207,24 @@ shift $((OPTIND-1))
 [ "$1" = "--" ] && shift
 
 log_d "COMPRESS=$COMPRESS"
-log_d  "ROTATE=$ROTATE"
-log_d  "COPY=$CP"
-log_d  "DEBUG=$DEBUG"
-log_d  "LOG_FILE='$LOG_FILE'"
-log_d  "DIR_OUT='$DIR_OUT'"
-log_d  "VERBOSE=$VERBOSE"
-log_d  "SORT=$SORT"
-log_d  "RENAME=$RENAME"
-log_d  "filter_code=$filter_code"
-log_d  "one level=$ONE_LEVEL"
-log_d  "test run=$TEST_RUN"
-log_d  "DIRO=$DIRO"
-log_d  "JPG=$JPG"
-log_d  "UPDATE_GEO=$UPDATE_GEO"
-log_d  "UPDATE_TIME=$UPDATE_TIME"
-log_d  "CHECK_DUPLICATES=$CHECK_DUPLICATES, REF_FOLDER=$REF_FOLDER"
-log_d  "Leftovers: $@"
+log_d "ROTATE=$ROTATE"
+log_d "KEEP_BIGGER=$KEEP_BIGGER"
+log_d "COPY=$CP"
+log_d "DEBUG=$DEBUG"
+log_d "LOG_FILE='$LOG_FILE'"
+log_d "DIR_OUT='$DIR_OUT'"
+log_d "VERBOSE=$VERBOSE"
+log_d "SORT=$SORT"
+log_d "RENAME=$RENAME"
+log_d "filter_code=$filter_code"
+log_d "one level=$ONE_LEVEL"
+log_d "test run=$TEST_RUN"
+log_d "DIRO=$DIRO"
+log_d "JPG=$JPG"
+log_d "UPDATE_GEO=$UPDATE_GEO"
+log_d "UPDATE_TIME=$UPDATE_TIME"
+log_d "CHECK_DUPLICATES=$CHECK_DUPLICATES, REF_FOLDER=$REF_FOLDER"
+log_d "Leftovers: $@"
 
 FILTER=""
 #change to upper case
@@ -329,8 +337,21 @@ if [ "$MD1" != "$MD2" ]; then
   return 0
 fi
 
-
 fi
+
+# FIX IT do it only for jpg
+# FIX IT handle errors
+if [ "$FMAE" == "1" ]; then
+MAE=`compare -metric MAE "$1" "$2" null: 2>&1 | \
+    awk '{print $2}' | sed -E "s/\(|\)//g"`
+
+THRESHOLD=0.015
+if (( $(bc <<< "$MAE > $THRESHOLD") )) ; then
+  log_v "MAE ($MAE) > THRESHOLD ($THRESHOLD)"
+  return 0
+fi
+fi
+#compare -metric MAE 1.jpg 1compressed20.jpg null: 2>&1 | awk '{print $2}' | sed -E "s/\(|\)//g"
 
 return 1
 }
@@ -590,8 +611,20 @@ DUPLICATES=$(($DUPLICATES+1))
 		if [ "$CP" == 0 ] ; then
 		  if [ "$KEEP_DUPLICATES" == 0 ]; then
 		    log_v "Deleting duplicate $file"
+
 		    if [ "$TEST_RUN" != 1 ]; then
-		      rm -f "$file"
+
+		      if [ "$KEEP_BIGGER" == "1" ]; then
+			    SIZE_FILE=`du "$file" | awk '{print $1}'`
+		        SIZE_OUTPUT=`du "$OUTPUT" | awk '{print $1}'`
+		        if (( $(bc <<< "$SIZE_FILE > $SIZE_OUTPUT") )) ; then
+		          mv -f "$file" "$OUTPUT"
+		        else
+		          rm -f "$file"
+		        fi
+		      else 
+		        rm -f "$file"
+		      fi
 		    fi
 		  else
 		    log_v "Leaving duplicate $file"
@@ -651,6 +684,7 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 	if [ "$UPDATE_TIME" == "1" ]; then
 	  # get folder name
 	  # FIX IT read metadata first and update / or update in empty
+	  # FIX IT do not update if there is no space after YYYY-MM echo ${var:0:1}
 	  FOLDER_DATE=`echo "$file" | rev |  awk -F '[/]' '{print $2}' | rev | cut -c -7`
 	  # check if folder has format YYYY-MM
 	  if [[ "$FOLDER_DATE" =~ [0-9]{4}-[0-9]{2} ]]; then
