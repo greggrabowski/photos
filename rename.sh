@@ -39,7 +39,6 @@
 # TO DO warning for non root users
 # TO DO smarter dependencies check (based on the selection)
 # TO DO keeping duplicates in folders
-# TO DO copy original files/backup before processing
 # TO DO add long options
 
 #read -p "Continue (y/n)?" CONT
@@ -155,11 +154,12 @@ function show_help
     echo "       m - make of camera"
     echo "       n - name of the model"
     echo "       t - time"
-    echo "       h - height"
-    echo "       w - width"
+    echo "       h - image height"
+    echo "       w - image width"
     echo "       i - unique ID"
-    echo "       c - checksum"
-    echo "       s - size"
+    echo "       c - checksum (MD5)"
+    echo "       s - file size"
+    echo "       x - mean absolute error (normalized), average channel error distance"
     echo ""
     echo "Example:"
     echo "./rename.sh -v -d -s -f \"mnt\""
@@ -170,12 +170,6 @@ function show_help
     echo "      m - camera manufacturer"
     echo "      n - type of the model"
     echo "      t - creation time"
-    echo "      w - image width"
-    echo "      h - image height"
-    echo "      i - image ID"
-    echo "      c - checksum (MD5)"
-    echo "      s - file size"
-    echo "      x - mean absolute error (normalized), average channel error distance"
 # TO DO -i option (input folder)
     exit 1
 }
@@ -687,7 +681,7 @@ if [ "$BACKUP" -eq "1" ]; then
 	
   fi
 fi
-exit
+
 # ========================== MAIN LOOP =============================
 
 
