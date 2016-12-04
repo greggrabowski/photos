@@ -40,6 +40,7 @@
 # TO DO smarter dependencies check (based on the selection)
 # TO DO keeping duplicates in folders
 # TO DO add long options
+# TO DO add option to select level of dir structure to be scanned 
 
 #read -p "Continue (y/n)?" CONT
 #read -p "Are you sure? " -n 1 -r
@@ -72,6 +73,7 @@ FMD5=1
 FMAE=0
 BACKUP=0
 ONE_LEVEL=0
+ZERO_LEVEL=0
 UPDATE_GEO=0
 JPG=0
 UPDATE_TIME=0
@@ -131,7 +133,7 @@ function log_d {
 function show_help
 {
     echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-b] [-l log_file] [-r] \
-         [-c compression_level] [-x pattern] [-1] [k] [j] [t] [-z ref_folder] [-g]"
+         [-c compression_level] [-x pattern] [-0] [-1] [k] [j] [t] [-z ref_folder] [-g]"
     echo "   -o   copy/move renamed files to target_directory and create directory structure"
     echo "   -d   display debug messages "
     echo "   -m   move files (by default files are copied)"
@@ -145,11 +147,12 @@ function show_help
     echo "   -j   change all the jpg,jpeg and JPG extension to jpg"
     echo "   -k   keep duplicates in orignal/source folder"
     echo "   -1   when sorting into output directory don't recreate the whole directory structure, include only directory where original file is located"
+    echo "   -1   keep flat structure in output directory"
     echo "   -t   test run"
     echo "   -p   copy original files into backup_location"
     echo "   -u   update time in metadata based on the folder name"
     echo "   -z   look for duplicate in ref_folder if found delete source file"
-    echo "   -g   update metadata comment using geolocation (coutry, city, etc)" 
+    echo "   -g   update metadata comment using geolocation (country, city, etc)" 
     echo "   -f   set matching criteria for duplicates" # FIX IT explain matching criteria
     echo "       m - make of camera"
     echo "       n - name of the model"
@@ -174,7 +177,7 @@ function show_help
     exit 1
 }
     	
-while getopts "1bc:df:ghjkl:mno:p:rstuvx:z:?" opt; do
+while getopts "01bc:df:ghjkl:mno:p:rstuvx:z:?" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -200,6 +203,7 @@ while getopts "1bc:df:ghjkl:mno:p:rstuvx:z:?" opt; do
       p) BACKUP=1; 
          BCK_DIR=$OPTARG ;;
       u) UPDATE_TIME=1 ;;
+      0) ZERO_LEVEL=1 ;;
       1) ONE_LEVEL=1 ;;
       t) TEST_RUN=1 ;;
       z) CHECK_DUPLICATES=1
@@ -223,6 +227,7 @@ log_d "SORT=$SORT"
 log_d "RENAME=$RENAME"
 log_d "filter_code=$filter_code"
 log_d "one level=$ONE_LEVEL"
+log_d "zero level=$ZERO_LEVEL"
 log_d "test run=$TEST_RUN"
 log_d "DIRO=$DIRO"
 log_d "JPG=$JPG"
@@ -561,6 +566,8 @@ else
 	  #LAST_DIR=echo "$pathname" |  rev |  awk -F '[/]' '{print $2}'
 	  FOLDER=`echo "$file" | rev |  awk -F '[/]' '{print $2}' | rev`
 	  FOLDER="$FOLDER/"
+	elif  [ "$ZERO_LEVEL" == "1" ]; then
+	  FOLDER=""
 	else
 	  x=`echo $BASE_DIR | wc -c`
 	  x=$((x+1))
