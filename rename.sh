@@ -1,5 +1,6 @@
 #!/bin/bash
-
+# TO DO inform about progress (every 10%)
+# TO DO add folder list processing
 # TO DO look for duplicates and remove them
 # TO DO dependencies, check if installed if not quit with warrning
 # TO DO notify about the risk when copying photos
@@ -282,7 +283,7 @@ function exists {
     
 function count {
 c=0
-extensions="jpg jpeg mov mp4 png gif m4a"
+extensions="jpg jpeg mov mp4 png gif m4a gif"
 for ext in $extensions; do
   c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 \
      | tr -d -c "\000" | wc -c)
@@ -681,11 +682,10 @@ if [ "$BACKUP" -eq "1" ]; then
 	if [ "$TEST_RUN" != 1 ]; then
 	  mkdir -p "$BCK_DIR"
 	fi
-	log_d "Copying into $BCK_DIR"
-	if [ "$TEST_RUN" != 1 ]; then
-	  cp -rf "$BASE_DIR/" "$BCK_DIR"
-	fi
-	
+  fi
+  log_d "Copying into $BCK_DIR"
+  if [ "$TEST_RUN" != 1 ]; then
+    cp -rf "$BASE_DIR/" "$BCK_DIR"
   fi
 fi
 
@@ -749,7 +749,7 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 	fi
 done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or \
   -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" -or -iname "*.gif" \
-  -or -iname "*.m4a" \) -not -path "$SKIP" -print0)
+  -or -iname "*.m4a" -or -iname "*.gif" \) -not -path "$SKIP" -print0)
 
 # ======================= END OF MAIN LOOP =============================
 
