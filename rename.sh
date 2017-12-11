@@ -305,6 +305,12 @@ if [ ! -e "$1" ] || [ ! -e "$2" ]; then
   return 0
 fi
 
+
+if [ `ls -i "$1" | cut -f1 -d ' '` ==  `ls -i "$2" | cut -f1 -d ' '` ] ; then
+  log_v  "Exception"
+  return 0
+fi
+
 if [ ! -z "$FILTER" ]; then 
 log_d "FILTER : $FILTER"
 
