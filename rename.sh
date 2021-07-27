@@ -86,6 +86,8 @@ KEEP_BIGGER=0
 BASE_DIR=`pwd`
 DIR_OUT=`pwd`
 SKIP="qazwsxedcrfv" # unique pattern to skip
+extensions="jpg jpeg mov mp4 png gif m4a gif"
+#extensions="jpg"
 
 function log_ {
     NUM=`echo "${BASH_LINENO[*]}" | cut -f2 -d ' ' `
@@ -178,7 +180,7 @@ function show_help
     exit 1
 }
     	
-while getopts "01bc:df:ghjkl:mno:p:rstuvx:z:?" opt; do
+while getopts "01bc:de:f:ghi:jkl:mno:p:rstuvx:z:?" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -188,7 +190,9 @@ while getopts "01bc:df:ghjkl:mno:p:rstuvx:z:?" opt; do
       m) CP=0 ;;
       b) KEEP_BIGGER=1 ;;
       d) DEBUG=1 ;;
+      e) extensions=$OPTARG ;;
       v) VERBOSE=1 ;;
+      i) BASE_DIR=$OPTARG ;;
       l) LOG_FILE=$OPTARG ;;
       s) SORT=1 ;;
       k) KEEP_DUPLICATES=1 ;;
@@ -216,6 +220,7 @@ shift $((OPTIND-1))
 
 [ "$1" = "--" ] && shift
 
+log_d "BASE_DIR=$BASE_DIR"
 log_d "COMPRESS=$COMPRESS"
 log_d "ROTATE=$ROTATE"
 log_d "KEEP_BIGGER=$KEEP_BIGGER"
@@ -283,7 +288,7 @@ function exists {
     
 function count {
 c=0
-extensions="jpg jpeg mov mp4 png gif m4a gif"
+
 for ext in $extensions; do
   c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 \
      | tr -d -c "\000" | wc -c)
@@ -377,7 +382,7 @@ fi
 return 1
 }
 
-
+# TO DO report IMAGEMAGICK not installed
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
 	log_v "We are using Linux"
 	MD5_CMD="md5sum"
@@ -697,8 +702,7 @@ fi
 
 # ========================== MAIN LOOP =============================
 
-
-
+for iext in $(eval echo "$extensions"); do 
 while read -d '' -r file; do
 #log_i "Starting ...."
 # take action on each file. $f store current file name  
@@ -753,9 +757,8 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 	if [ "$RENAME" == "1" ]; then
 	   rename "$file"
 	fi
-done < <(find "$BASE_DIR" -type f \( -iname "*.jpg" -or -iname "*.jpeg" -or \
-  -iname "*.mov" -or -iname "*.png" -or -iname "*.mp4" -or -iname "*.gif" \
-  -or -iname "*.m4a" -or -iname "*.gif" \) -not -path "$SKIP" -print0)
+done < <(find "$BASE_DIR" -type f -iname "*.${iext}" -not -path "$SKIP" -print0)
+done
 
 # ======================= END OF MAIN LOOP =============================
 
