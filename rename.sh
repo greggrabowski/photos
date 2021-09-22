@@ -87,6 +87,7 @@ BASE_DIR=`pwd`
 DIR_OUT=`pwd`
 SKIP="qazwsxedcrfv" # unique pattern to skip
 extensions="jpg jpeg mov mp4 png gif m4a gif"
+nmp="*" # name pattern to be grep'ed
 #extensions="jpg"
 
 function log_ {
@@ -136,7 +137,7 @@ function log_d {
 function show_help
 {
     echo "Usage: rename.sh [-o target_directory] [-d] [-m] [-b] [-l log_file] [-r] \
-         [-c compression_level] [-x pattern] [-0] [-1] [k] [j] [t] [-z ref_folder] [-g]"
+         [-c compression_level] [-x pattern] [-0] [-1] [k] [j] [t] [-z ref_folder] [-g] [-y name pattern]"
     echo "   -o   copy/move renamed files to target_directory and create directory structure"
     echo "   -d   display debug messages "
     echo "   -m   move files (by default files are copied)"
@@ -147,6 +148,7 @@ function show_help
     echo "   -s   sort files intro folders (by month)"
     echo "   -x   exclude folders matching pattern"
     echo "   -n   keep original name"
+    echo "   -y   name pattern"
     echo "   -j   change all the jpg,jpeg and JPG extension to jpg"
     echo "   -k   keep duplicates in orignal/source folder"
     echo "   -1   when sorting into output directory don't recreate the whole directory structure, include only directory where original file is located"
@@ -180,7 +182,7 @@ function show_help
     exit 1
 }
     	
-while getopts "01bc:de:f:ghi:jkl:mno:p:rstuvx:z:?" opt; do
+while getopts "01bc:de:f:ghi:jkl:mno:p:rstuvx:y:z:?" opt; do
     case "$opt" in
       h|\?)
         show_help
@@ -189,6 +191,7 @@ while getopts "01bc:de:f:ghi:jkl:mno:p:rstuvx:z:?" opt; do
       r) ROTATE=1 ;;
       m) CP=0 ;;
       b) KEEP_BIGGER=1 ;;
+      y) nmp=$OPTARG ;;
       d) DEBUG=1 ;;
       e) extensions=$OPTARG ;;
       v) VERBOSE=1 ;;
@@ -243,6 +246,8 @@ log_d "BACKUP=$BACKUP, BCK_DIR=$BCK_DIR"
 log_d "CHECK_DUPLICATES=$CHECK_DUPLICATES, REF_FOLDER=$REF_FOLDER"
 log_d "Leftovers: $@"
 
+nmp="*${nmp}*"
+
 FILTER=""
 #change to upper case
 while read -n1 character; do
@@ -290,7 +295,7 @@ function count {
 c=0
 
 for ext in $extensions; do
-  c_=$(find "$1" -maxdepth 10 -iname "*.$ext" -not -path "$SKIP" -print0 \
+  c_=$(find "$1" -maxdepth 10 -iname "${nmp}.${ext}" -not -path "$SKIP" -print0 \
      | tr -d -c "\000" | wc -c)
   c=$(($c+$c_))
 done
@@ -703,6 +708,15 @@ fi
 # ========================== MAIN LOOP =============================
 
 for iext in $(eval echo "$extensions"); do 
+
+# check if we are processing picture (compress, rotate will apply only to photos)
+if [ ${iext} == "jpeg" ] || [ ${iext} == "JPEG" ] || [ ${iext} == "jpg" ]|| [ ${iext} == "JPG" ] ; then
+  photo_type=1
+else
+  photo_type=0
+fi
+#echo "P={$photo_type}"
+
 while read -d '' -r file; do
 #log_i "Starting ...."
 # take action on each file. $f store current file name  
@@ -745,6 +759,7 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 	  fi
 	fi
 
+  if [ ${photo_type} == 1 ] ; then
 	# FIX IT
 	if [ "$ROTATE" == "1" ] ; then
 		jhead $file
@@ -754,10 +769,12 @@ log_v "Processing file $file ($COUNTER/$FILES_IN_1)"
 		log_v "PICTURE : Compressing (quality set to $COMPRESS%) file : $file"
 		convert -compress jpeg -quality "$COMPRESS" "$file" "$file"
 	fi 
+   fi
 	if [ "$RENAME" == "1" ]; then
 	   rename "$file"
 	fi
-done < <(find "$BASE_DIR" -type f -iname "*.${iext}" -not -path "$SKIP" -print0)
+ 
+done < <(find "$BASE_DIR" -type f -iname "${nmp}.${iext}" -not -path "$SKIP" -print0)
 done
 
 # ======================= END OF MAIN LOOP =============================
